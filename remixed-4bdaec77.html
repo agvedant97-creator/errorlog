@@ -1,0 +1,1619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GMAT Error Log</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0f0f13;--surface:#17171f;--surface2:#1e1e28;--surface3:#13131a;
+    --border:#2a2a38;--border2:#343448;--accent:#e8c547;
+    --quant-color:#5c8aff;--verbal-color:#b06aff;--red:#ff5c5c;
+    --text:#e8e8f0;--muted:#6b6b80;
+    --pre-tag:#5c8aff;--in-tag:#e8c547;--post-tag:#7ed9a8;--og-tag:#ff8c5c;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;padding:40px 24px 100px;}
+
+  /* HEADER */
+  .header{max-width:960px;margin:0 auto 32px;display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;}
+  .header-left{border-left:4px solid var(--accent);padding-left:20px;}
+  .eyebrow{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.2em;color:var(--muted);text-transform:uppercase;margin-bottom:8px;}
+  .header h1{font-family:'Syne',sans-serif;font-size:clamp(28px,4vw,44px);font-weight:800;line-height:1.1;}
+  .header h1 span{color:var(--accent);}
+  .stats{display:flex;gap:28px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);text-align:right;}
+  .stat-item strong{display:block;font-size:26px;font-weight:800;color:var(--text);font-family:'Syne',sans-serif;line-height:1.1;}
+
+  /* FILTER BAR */
+  .filter-bar{max-width:960px;margin:0 auto 32px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .filter-label{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);}
+  .filter-btn{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:7px 18px;border-radius:30px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .15s;}
+  .filter-btn:hover{border-color:var(--border2);color:var(--text);}
+  .filter-btn.active{background:rgba(232,197,71,.12);border-color:rgba(232,197,71,.4);color:var(--accent);}
+  .filter-count{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-left:4px;}
+  .card.hidden-by-filter{display:none;}
+
+  /* MAIN SECTION (Quant / Verbal) */
+  .main-section{max-width:960px;margin:0 auto 28px;}
+  .main-section-header{display:flex;align-items:center;gap:16px;margin-bottom:14px;cursor:pointer;user-select:none;}
+  .main-section-pill{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:6px 18px;border-radius:30px;border:2px solid;display:flex;align-items:center;gap:8px;transition:opacity .15s;}
+  .main-section-pill:hover{opacity:.85;}
+  .quant-pill{color:var(--quant-color);border-color:var(--quant-color);background:rgba(92,138,255,.08);}
+  .verbal-pill{color:var(--verbal-color);border-color:var(--verbal-color);background:rgba(176,106,255,.08);}
+  .pill-chevron{font-size:14px;transition:transform .25s;line-height:1;}
+  .main-section.open .pill-chevron{transform:rotate(180deg);}
+  .main-section-meta{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);}
+  .main-section-line{flex:1;height:1px;background:var(--border);}
+  .main-section-body{display:none;}
+  .main-section.open .main-section-body{display:block;}
+
+  /* CHAPTER */
+  .chapter{border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:12px;transition:border-color .2s;}
+  .chapter.open{border-color:var(--border2);}
+  .chapter-header{display:flex;align-items:center;justify-content:space-between;padding:16px 22px;cursor:pointer;background:var(--surface);user-select:none;transition:background .15s;}
+  .chapter-header:hover{background:var(--surface2);}
+  .chapter-header-left{display:flex;align-items:center;gap:14px;}
+  .chapter-num{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.1em;}
+  .chapter-name{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;}
+  .chapter-count{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);background:rgba(255,255,255,.04);padding:3px 10px;border-radius:20px;border:1px solid var(--border);}
+  .chevron{color:var(--muted);font-size:16px;transition:transform .25s;line-height:1;}
+  .chapter.open .chevron{transform:rotate(180deg);}
+  .chapter-body{display:none;background:var(--surface3);padding:0 18px 18px;}
+  .chapter.open .chapter-body{display:block;}
+
+  /* TABS */
+  .section-tabs{display:flex;gap:6px;padding:14px 0 12px;border-bottom:1px solid var(--border);margin-bottom:14px;flex-wrap:wrap;}
+  .tab-btn{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;padding:5px 13px;border-radius:5px;border:1px solid var(--border);cursor:pointer;background:transparent;color:var(--muted);transition:all .15s;}
+  .tab-btn:hover{color:var(--text);border-color:var(--border2);}
+  .tab-btn.active-all{background:rgba(255,255,255,.07);color:var(--text);border-color:var(--border2);}
+  .tab-btn.active-pre{background:rgba(92,138,255,.15);color:var(--pre-tag);border-color:rgba(92,138,255,.35);}
+  .tab-btn.active-in{background:rgba(232,197,71,.15);color:var(--in-tag);border-color:rgba(232,197,71,.35);}
+  .tab-btn.active-post{background:rgba(126,217,168,.15);color:var(--post-tag);border-color:rgba(126,217,168,.3);}
+  .tab-btn.active-og{background:rgba(255,140,92,.15);color:var(--og-tag);border-color:rgba(255,140,92,.3);}
+  .tab-btn.active-portal{background:rgba(126,217,168,.15);color:#7ed9a8;border-color:rgba(126,217,168,.35);}
+
+  /* PANELS */
+  .section-panel{display:none;}
+  .section-panel.visible{display:block;}
+  .all-panel{display:none;}
+  .all-panel.visible{display:block;}
+
+  /* SECTION LABELS */
+  .s-tag,.all-section-label{display:inline-block;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.15em;text-transform:uppercase;padding:3px 10px;border-radius:4px;margin-bottom:12px;}
+  .s-tag.pre,.all-section-label.pre{background:rgba(92,138,255,.12);color:var(--pre-tag);border:1px solid rgba(92,138,255,.25);}
+  .s-tag.in,.all-section-label.in{background:rgba(232,197,71,.12);color:var(--in-tag);border:1px solid rgba(232,197,71,.25);}
+  .s-tag.post,.all-section-label.post{background:rgba(126,217,168,.12);color:var(--post-tag);border:1px solid rgba(126,217,168,.2);}
+  .s-tag.og,.all-section-label.og{background:rgba(255,140,92,.12);color:var(--og-tag);border:1px solid rgba(255,140,92,.2);}
+  .s-tag.portal,.all-section-label.portal{background:rgba(126,217,168,.12);color:#7ed9a8;border:1px solid rgba(126,217,168,.25);}
+  .all-group{margin-bottom:18px;}
+  .all-group:last-child{margin-bottom:0;}
+
+  /* CARD */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px 22px;margin-bottom:10px;transition:border-color .2s;}
+  .card:hover{border-color:var(--border2);}
+  .card-meta{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+  .q-number{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:.1em;}
+  .q-type{font-family:'DM Mono',monospace;font-size:10px;padding:2px 8px;border-radius:3px;background:rgba(255,92,92,.08);color:var(--red);border:1px solid rgba(255,92,92,.2);letter-spacing:.06em;}
+  .ask-label{display:flex;align-items:center;gap:6px;margin-left:auto;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;color:var(--muted);cursor:pointer;user-select:none;padding:3px 10px;border-radius:20px;border:1px solid var(--border);transition:all .15s;}
+  .ask-label:hover{border-color:var(--accent);color:var(--accent);}
+  .ask-label input[type="checkbox"]{display:none;}
+  .ask-label.checked{background:rgba(232,197,71,.12);border-color:rgba(232,197,71,.4);color:var(--accent);}
+  .ask-label.checked::before{content:"✓ ";}
+  .question-body{font-size:14.5px;line-height:1.75;margin-bottom:14px;}
+  .question-body .stem{font-weight:400;margin-bottom:8px;color:#9a9ab0;}
+  .math{font-family:'DM Mono',monospace;font-size:13.5px;color:#cfc0ff;}
+  .choices{display:flex;flex-direction:column;gap:7px;margin-bottom:14px;}
+  .choice{display:flex;align-items:flex-start;gap:12px;padding:8px 13px;border-radius:6px;border:1px solid var(--border);font-size:13px;color:#a8a8c0;line-height:1.5;transition:background .12s;}
+  .choice:hover{background:rgba(255,255,255,.025);}
+  .choice-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);min-width:16px;padding-top:1px;}
+  .notes-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-bottom:6px;}
+  .notes-box{width:100%;background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:6px;color:#b0b0c8;font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.6;padding:10px 14px;resize:vertical;min-height:68px;outline:none;transition:border-color .15s;}
+  .notes-box::placeholder{color:#3a3a52;}
+  .notes-box:focus{border-color:#4a4a65;}
+  .empty{text-align:center;padding:26px;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;border:1px dashed var(--border);border-radius:10px;letter-spacing:.06em;}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════
+     HEADER
+════════════════════════════════════════ -->
+<div class="header">
+  <div class="header-left">
+    <div class="eyebrow">Error Log · GMAT Focus</div>
+    <h1>GMAT <span>Prep</span></h1>
+  </div>
+  <div class="stats">
+    <div class="stat-item"><strong id="total-chapters">0</strong>Chapters</div>
+    <div class="stat-item"><strong id="total-questions">0</strong>Questions</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     FILTER BAR
+════════════════════════════════════════ -->
+<div class="filter-bar">
+  <span class="filter-label">Filter:</span>
+  <button class="filter-btn active" id="filter-all" onclick="setFilter('all')">All Questions</button>
+  <button class="filter-btn" id="filter-ask" onclick="setFilter('ask')">⚑ Ask Faculty <span class="filter-count" id="ask-count"></span></button>
+</div>
+
+<!-- ═══════════════════════════════════════
+     QUANTITATIVE SECTION — START
+════════════════════════════════════════ -->
+<div class="main-section" id="sec-quant">
+  <div class="main-section-header" onclick="toggleSection('sec-quant')">
+    <div class="main-section-pill quant-pill">▣ Quantitative <span class="pill-chevron">⌄</span></div>
+    <span class="main-section-meta" id="meta-quant"></span>
+    <div class="main-section-line"></div>
+  </div>
+  <div class="main-section-body">
+
+    <!-- ── Q·CH01 · Inequalities & Absolute Value ── -->
+    <div class="chapter" id="q-ch1">
+      <div class="chapter-header" onclick="toggleChapter('q-ch1')">
+        <div class="chapter-header-left">
+          <span class="chapter-num">Q · CH 01</span>
+          <span class="chapter-name">Inequalities &amp; Absolute Value</span>
+          <span class="chapter-count" id="count-q-ch1"></span>
+        </div>
+        <span class="chevron">⌄</span>
+      </div>
+      <div class="chapter-body">
+        <div class="section-tabs">
+          <button class="tab-btn active-all" onclick="showTab('q-ch1','all',this)">All</button>
+          <button class="tab-btn" onclick="showTab('q-ch1','pre',this)">Pre-Class</button>
+          <button class="tab-btn" onclick="showTab('q-ch1','in',this)">In-Class</button>
+          <button class="tab-btn" onclick="showTab('q-ch1','post',this)">Post-Class</button>
+          <button class="tab-btn" onclick="showTab('q-ch1','og',this)">OG</button>
+        </div>
+        <!-- ALL -->
+        <div class="all-panel visible" id="q-ch1-all">
+          <div class="all-group">
+            <div class="all-section-label in">In-Class</div>
+            <div class="card">
+              <div class="card-meta"><span class="q-number">Q08</span><span class="q-type">Data Sufficiency</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-q-ch1-Q08">Ask faculty</label></div>
+              <div class="question-body">
+                <div class="stem">Is <span class="math">x = y</span>?</div>
+                <div class="stmt">(1) <span class="math">ax = ay</span></div>
+                <div class="stmt">(2) <span class="math">a²x = a²y</span></div>
+              </div>
+              <div class="choices">
+                <div class="choice"><span class="choice-label">A</span>Statement (1) ALONE is sufficient, but statement (2) alone is not sufficient.</div>
+                <div class="choice"><span class="choice-label">B</span>Statement (2) ALONE is sufficient, but statement (1) alone is not sufficient.</div>
+                <div class="choice"><span class="choice-label">C</span>Both statements TOGETHER are sufficient, but NEITHER alone is sufficient.</div>
+                <div class="choice"><span class="choice-label">D</span>EACH statement ALONE is sufficient.</div>
+                <div class="choice"><span class="choice-label">E</span>Statements (1) and (2) TOGETHER are NOT sufficient.</div>
+              </div>
+              <div class="notes-label">Notes / Remarks</div>
+              <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+            </div>
+            <div class="card">
+              <div class="card-meta"><span class="q-number">Q09</span><span class="q-type">Data Sufficiency</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-q-ch1-Q09">Ask faculty</label></div>
+              <div class="question-body">
+                <div class="stem">Is <span class="math">x &gt; y</span>?</div>
+                <div class="stmt">(1) <span class="math">ax &gt; ay</span></div>
+                <div class="stmt">(2) <span class="math">a²x &gt; a²y</span></div>
+              </div>
+              <div class="choices">
+                <div class="choice"><span class="choice-label">A</span>Statement (1) ALONE is sufficient, but statement (2) alone is not sufficient.</div>
+                <div class="choice"><span class="choice-label">B</span>Statement (2) ALONE is sufficient, but statement (1) alone is not sufficient.</div>
+                <div class="choice"><span class="choice-label">C</span>Both statements TOGETHER are sufficient, but NEITHER alone is sufficient.</div>
+                <div class="choice"><span class="choice-label">D</span>EACH statement ALONE is sufficient.</div>
+                <div class="choice"><span class="choice-label">E</span>Statements (1) and (2) TOGETHER are NOT sufficient.</div>
+              </div>
+              <div class="notes-label">Notes / Remarks</div>
+              <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+            </div>
+          </div>
+        </div><!-- /q-ch1-all -->
+        <div class="section-panel" id="q-ch1-pre"><div class="empty">No pre-class questions added yet.</div></div>
+        <!-- IN-CLASS -->
+        <div class="section-panel" id="q-ch1-in">
+          <div class="s-tag in">In-Class</div>
+          <div class="card">
+            <div class="card-meta"><span class="q-number">Q08</span><span class="q-type">Data Sufficiency</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-q-ch1-Q08-in">Ask faculty</label></div>
+            <div class="question-body">
+              <div class="stem">Is <span class="math">x = y</span>?</div>
+              <div class="stmt">(1) <span class="math">ax = ay</span></div>
+              <div class="stmt">(2) <span class="math">a²x = a²y</span></div>
+            </div>
+            <div class="choices">
+              <div class="choice"><span class="choice-label">A</span>Statement (1) ALONE is sufficient, but statement (2) alone is not sufficient.</div>
+              <div class="choice"><span class="choice-label">B</span>Statement (2) ALONE is sufficient, but statement (1) alone is not sufficient.</div>
+              <div class="choice"><span class="choice-label">C</span>Both statements TOGETHER are sufficient, but NEITHER alone is sufficient.</div>
+              <div class="choice"><span class="choice-label">D</span>EACH statement ALONE is sufficient.</div>
+              <div class="choice"><span class="choice-label">E</span>Statements (1) and (2) TOGETHER are NOT sufficient.</div>
+            </div>
+            <div class="notes-label">Notes / Remarks</div>
+            <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+          </div>
+          <div class="card">
+            <div class="card-meta"><span class="q-number">Q09</span><span class="q-type">Data Sufficiency</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-q-ch1-Q09-in">Ask faculty</label></div>
+            <div class="question-body">
+              <div class="stem">Is <span class="math">x &gt; y</span>?</div>
+              <div class="stmt">(1) <span class="math">ax &gt; ay</span></div>
+              <div class="stmt">(2) <span class="math">a²x &gt; a²y</span></div>
+            </div>
+            <div class="choices">
+              <div class="choice"><span class="choice-label">A</span>Statement (1) ALONE is sufficient, but statement (2) alone is not sufficient.</div>
+              <div class="choice"><span class="choice-label">B</span>Statement (2) ALONE is sufficient, but statement (1) alone is not sufficient.</div>
+              <div class="choice"><span class="choice-label">C</span>Both statements TOGETHER are sufficient, but NEITHER alone is sufficient.</div>
+              <div class="choice"><span class="choice-label">D</span>EACH statement ALONE is sufficient.</div>
+              <div class="choice"><span class="choice-label">E</span>Statements (1) and (2) TOGETHER are NOT sufficient.</div>
+            </div>
+            <div class="notes-label">Notes / Remarks</div>
+            <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+          </div>
+        </div><!-- /q-ch1-in -->
+        <div class="section-panel" id="q-ch1-post"><div class="empty">No post-class questions added yet.</div></div>
+        <div class="section-panel" id="q-ch1-og"><div class="empty">No OG questions added yet.</div></div>
+      </div><!-- /chapter-body -->
+    </div><!-- /q-ch1 -->
+
+    <!-- ── Q·CH02 · Equations & Ratios ── -->
+    <div class="chapter" id="q-ch2">
+      <div class="chapter-header" onclick="toggleChapter('q-ch2')">
+        <div class="chapter-header-left">
+          <span class="chapter-num">Q · CH 02</span>
+          <span class="chapter-name">Equations &amp; Ratios</span>
+          <span class="chapter-count" id="count-q-ch2"></span>
+        </div>
+        <span class="chevron">⌄</span>
+      </div>
+      <div class="chapter-body">
+        <div class="section-tabs">
+          <button class="tab-btn active-all" onclick="showTab('q-ch2','all',this)">All</button>
+          <button class="tab-btn" onclick="showTab('q-ch2','pre',this)">Pre-Class</button>
+          <button class="tab-btn" onclick="showTab('q-ch2','in',this)">In-Class</button>
+          <button class="tab-btn" onclick="showTab('q-ch2','post',this)">Post-Class</button>
+          <button class="tab-btn" onclick="showTab('q-ch2','og',this)">OG</button>
+        </div>
+        <!-- ALL -->
+        <div class="all-panel visible" id="q-ch2-all">
+          <div class="all-group">
+            <div class="all-section-label og">OG</div>
+            <div class="card">
+              <div class="card-meta"><span class="q-number">Q46</span><span class="q-type">Problem Solving</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-q-ch2-Q46">Ask faculty</label></div>
+              <div class="question-body">
+                <div class="stem">As <span class="math">x</span> increases from 165 to 166, which of the following must increase?</div>
+                <div class="stmt">I. <span class="math">2x − 5</span></div>
+                <div class="stmt">II. <span class="math">1 − 1/x</span></div>
+                <div class="stmt">III. <span class="math">1 / (x² − x)</span></div>
+              </div>
+              <div class="choices">
+                <div class="choice"><span class="choice-label">A</span>I only</div>
+                <div class="choice"><span class="choice-label">B</span>III only</div>
+                <div class="choice"><span class="choice-label">C</span>I and II</div>
+                <div class="choice"><span class="choice-label">D</span>I and III</div>
+                <div class="choice"><span class="choice-label">E</span>II and III</div>
+              </div>
+              <div class="notes-label">Notes / Remarks</div>
+              <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+            </div>
+          </div>
+        </div><!-- /q-ch2-all -->
+        <div class="section-panel" id="q-ch2-pre"><div class="empty">No pre-class questions added yet.</div></div>
+        <div class="section-panel" id="q-ch2-in"><div class="empty">No in-class questions added yet.</div></div>
+        <div class="section-panel" id="q-ch2-post"><div class="empty">No post-class questions added yet.</div></div>
+        <!-- OG -->
+        <div class="section-panel" id="q-ch2-og">
+          <div class="s-tag og">OG</div>
+          <div class="card">
+            <div class="card-meta"><span class="q-number">Q46</span><span class="q-type">Problem Solving</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-q-ch2-Q46-og">Ask faculty</label></div>
+            <div class="question-body">
+              <div class="stem">As <span class="math">x</span> increases from 165 to 166, which of the following must increase?</div>
+              <div class="stmt">I. <span class="math">2x − 5</span></div>
+              <div class="stmt">II. <span class="math">1 − 1/x</span></div>
+              <div class="stmt">III. <span class="math">1 / (x² − x)</span></div>
+            </div>
+            <div class="choices">
+              <div class="choice"><span class="choice-label">A</span>I only</div>
+              <div class="choice"><span class="choice-label">B</span>III only</div>
+              <div class="choice"><span class="choice-label">C</span>I and II</div>
+              <div class="choice"><span class="choice-label">D</span>I and III</div>
+              <div class="choice"><span class="choice-label">E</span>II and III</div>
+            </div>
+            <div class="notes-label">Notes / Remarks</div>
+            <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+          </div>
+        </div><!-- /q-ch2-og -->
+      </div><!-- /chapter-body -->
+    </div><!-- /q-ch2 -->
+
+    <!-- ── Q·CH03 · Sequences & Series ── -->
+    <div class="chapter" id="q-ch3">
+      <div class="chapter-header" onclick="toggleChapter('q-ch3')">
+        <div class="chapter-header-left">
+          <span class="chapter-num">Q · CH 03</span>
+          <span class="chapter-name">Sequences &amp; Series</span>
+          <span class="chapter-count" id="count-q-ch3"></span>
+        </div>
+        <span class="chevron">⌄</span>
+      </div>
+      <div class="chapter-body">
+        <div class="section-tabs">
+          <button class="tab-btn active-all" onclick="showTab('q-ch3','all',this)">All</button>
+          <button class="tab-btn" onclick="showTab('q-ch3','pre',this)">Pre-Class</button>
+          <button class="tab-btn" onclick="showTab('q-ch3','in',this)">In-Class</button>
+          <button class="tab-btn" onclick="showTab('q-ch3','post',this)">Post-Class</button>
+          <button class="tab-btn" onclick="showTab('q-ch3','og',this)">OG</button>
+        </div>
+        <!-- ALL -->
+        <div class="all-panel visible" id="q-ch3-all">
+          <div class="all-group">
+            <div class="all-section-label og">OG</div>
+            <div class="card">
+              <div class="card-meta"><span class="q-number">Q237</span><span class="q-type">Problem Solving</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-q-ch3-Q237">Ask faculty</label></div>
+              <div class="question-body"><div class="stem">A sequence <span class="math">a₁, a₂, a₃, ...</span> is defined as: <span class="math">a₁ = 3</span>, <span class="math">a₂ = 5</span>, and every term after <span class="math">a₂</span> is the product of all preceding terms. If <span class="math">aₙ = t</span> and <span class="math">n &gt; 2</span>, what is <span class="math">aₙ₊₂</span> in terms of <span class="math">t</span>?</div></div>
+              <div class="choices">
+                <div class="choice"><span class="choice-label">A</span>4t</div><div class="choice"><span class="choice-label">B</span>t²</div><div class="choice"><span class="choice-label">C</span>t³</div><div class="choice"><span class="choice-label">D</span>t⁴</div><div class="choice"><span class="choice-label">E</span>t⁸</div>
+              </div>
+              <div class="notes-label">Notes / Remarks</div>
+              <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+            </div>
+            <div class="card">
+              <div class="card-meta"><span class="q-number">Q272</span><span class="q-type">Problem Solving</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-q-ch3-Q272">Ask faculty</label></div>
+              <div class="question-body"><div class="stem">A musical scale has 13 notes; highest frequency is twice the lowest; ratio between consecutive notes is fixed. Lowest = 440 Hz. What is the frequency of the 7th note?</div></div>
+              <div class="choices">
+                <div class="choice"><span class="choice-label">A</span>440√2</div><div class="choice"><span class="choice-label">B</span>440√(2⁷)</div><div class="choice"><span class="choice-label">C</span>440√(2¹²)</div><div class="choice"><span class="choice-label">D</span>440 · ¹²√(2⁷)</div><div class="choice"><span class="choice-label">E</span>440 · ⁷√(2¹²)</div>
+              </div>
+              <div class="notes-label">Notes / Remarks</div>
+              <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+            </div>
+          </div>
+        </div><!-- /q-ch3-all -->
+        <div class="section-panel" id="q-ch3-pre"><div class="empty">No pre-class questions added yet.</div></div>
+        <div class="section-panel" id="q-ch3-in"><div class="empty">No in-class questions added yet.</div></div>
+        <div class="section-panel" id="q-ch3-post"><div class="empty">No post-class questions added yet.</div></div>
+        <!-- OG -->
+        <div class="section-panel" id="q-ch3-og">
+          <div class="s-tag og">OG</div>
+          <div class="card">
+            <div class="card-meta"><span class="q-number">Q237</span><span class="q-type">Problem Solving</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-q-ch3-Q237-og">Ask faculty</label></div>
+            <div class="question-body"><div class="stem">A sequence <span class="math">a₁, a₂, a₃, ...</span> is defined as: <span class="math">a₁ = 3</span>, <span class="math">a₂ = 5</span>, and every term after <span class="math">a₂</span> is the product of all preceding terms. If <span class="math">aₙ = t</span> and <span class="math">n &gt; 2</span>, what is <span class="math">aₙ₊₂</span> in terms of <span class="math">t</span>?</div></div>
+            <div class="choices">
+              <div class="choice"><span class="choice-label">A</span>4t</div><div class="choice"><span class="choice-label">B</span>t²</div><div class="choice"><span class="choice-label">C</span>t³</div><div class="choice"><span class="choice-label">D</span>t⁴</div><div class="choice"><span class="choice-label">E</span>t⁸</div>
+            </div>
+            <div class="notes-label">Notes / Remarks</div>
+            <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+          </div>
+          <div class="card">
+            <div class="card-meta"><span class="q-number">Q272</span><span class="q-type">Problem Solving</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-q-ch3-Q272-og">Ask faculty</label></div>
+            <div class="question-body"><div class="stem">A musical scale has 13 notes; highest frequency is twice the lowest; ratio between consecutive notes is fixed. Lowest = 440 Hz. What is the frequency of the 7th note?</div></div>
+            <div class="choices">
+              <div class="choice"><span class="choice-label">A</span>440√2</div><div class="choice"><span class="choice-label">B</span>440√(2⁷)</div><div class="choice"><span class="choice-label">C</span>440√(2¹²)</div><div class="choice"><span class="choice-label">D</span>440 · ¹²√(2⁷)</div><div class="choice"><span class="choice-label">E</span>440 · ⁷√(2¹²)</div>
+            </div>
+            <div class="notes-label">Notes / Remarks</div>
+            <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+          </div>
+        </div><!-- /q-ch3-og -->
+      </div><!-- /chapter-body -->
+    </div><!-- /q-ch3 -->
+
+    <!-- ── Q·CH04 · Numbers ── -->
+    <div class="chapter" id="q-ch4">
+      <div class="chapter-header" onclick="toggleChapter('q-ch4')">
+        <div class="chapter-header-left">
+          <span class="chapter-num">Q · CH 04</span>
+          <span class="chapter-name">Numbers</span>
+          <span class="chapter-count" id="count-q-ch4"></span>
+        </div>
+        <span class="chevron">⌄</span>
+      </div>
+      <div class="chapter-body">
+        <div class="section-tabs">
+          <button class="tab-btn active-all" onclick="showTab('q-ch4','all',this)">All</button>
+          <button class="tab-btn" onclick="showTab('q-ch4','pre',this)">Pre-Class</button>
+          <button class="tab-btn" onclick="showTab('q-ch4','in',this)">In-Class</button>
+          <button class="tab-btn" onclick="showTab('q-ch4','post',this)">Post-Class</button>
+          <button class="tab-btn" onclick="showTab('q-ch4','og',this)">OG</button>
+          <button class="tab-btn" onclick="showTab('q-ch4','portal',this)">Portal</button>
+        </div>
+        <!-- ALL -->
+        <div class="all-panel visible" id="q-ch4-all">
+          <div class="all-group">
+            <div class="all-section-label portal">Portal</div>
+            <div class="card">
+              <div class="card-meta"><span class="q-number">Divisibility Ex 3</span><span class="q-type">Data Sufficiency</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-q-ch4-Div3">Ask faculty</label></div>
+              <div class="question-body">
+                <div class="stem">If positive integer <span class="math">P</span> is a multiple of 22 and positive integer <span class="math">Q</span> is a multiple of 55, is <span class="math">PQ</span> a multiple of 70?</div>
+                <div class="stmt">(1) <span class="math">Q</span> is a multiple of 49</div>
+                <div class="stmt">(2) <span class="math">P</span> is a multiple of 4</div>
+              </div>
+              <div class="choices">
+                <div class="choice"><span class="choice-label">A</span>Statement (1) ALONE is sufficient, but statement (2) alone is not sufficient.</div>
+                <div class="choice"><span class="choice-label">B</span>Statement (2) ALONE is sufficient, but statement (1) alone is not sufficient.</div>
+                <div class="choice"><span class="choice-label">C</span>Both statements TOGETHER are sufficient, but NEITHER one ALONE is sufficient.</div>
+                <div class="choice"><span class="choice-label">D</span>EACH statement ALONE is sufficient.</div>
+                <div class="choice"><span class="choice-label">E</span>Statements (1) and (2) TOGETHER are NOT sufficient.</div>
+              </div>
+              <div class="notes-label">Notes / Remarks</div>
+              <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+            </div>
+          </div>
+        </div><!-- /q-ch4-all -->
+        <div class="section-panel" id="q-ch4-pre"><div class="empty">No pre-class questions added yet.</div></div>
+        <div class="section-panel" id="q-ch4-in"><div class="empty">No in-class questions added yet.</div></div>
+        <div class="section-panel" id="q-ch4-post"><div class="empty">No post-class questions added yet.</div></div>
+        <div class="section-panel" id="q-ch4-og"><div class="empty">No OG questions added yet.</div></div>
+        <!-- PORTAL -->
+        <div class="section-panel" id="q-ch4-portal">
+          <div class="s-tag portal">Portal</div>
+          <div class="card">
+            <div class="card-meta"><span class="q-number">Divisibility Ex 3</span><span class="q-type">Data Sufficiency</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-q-ch4-Div3-portal">Ask faculty</label></div>
+            <div class="question-body">
+              <div class="stem">If positive integer <span class="math">P</span> is a multiple of 22 and positive integer <span class="math">Q</span> is a multiple of 55, is <span class="math">PQ</span> a multiple of 70?</div>
+              <div class="stmt">(1) <span class="math">Q</span> is a multiple of 49</div>
+              <div class="stmt">(2) <span class="math">P</span> is a multiple of 4</div>
+            </div>
+            <div class="choices">
+              <div class="choice"><span class="choice-label">A</span>Statement (1) ALONE is sufficient, but statement (2) alone is not sufficient.</div>
+              <div class="choice"><span class="choice-label">B</span>Statement (2) ALONE is sufficient, but statement (1) alone is not sufficient.</div>
+              <div class="choice"><span class="choice-label">C</span>Both statements TOGETHER are sufficient, but NEITHER one ALONE is sufficient.</div>
+              <div class="choice"><span class="choice-label">D</span>EACH statement ALONE is sufficient.</div>
+              <div class="choice"><span class="choice-label">E</span>Statements (1) and (2) TOGETHER are NOT sufficient.</div>
+            </div>
+            <div class="notes-label">Notes / Remarks</div>
+            <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+          </div>
+        </div><!-- /q-ch4-portal -->
+      </div><!-- /chapter-body -->
+    </div><!-- /q-ch4 -->
+
+    <!-- ═══ ADD NEW QUANT CHAPTERS ABOVE THIS LINE ═══ -->
+
+  </div><!-- /main-section-body sec-quant -->
+</div><!-- /sec-quant -->
+<!-- ═══════════════════════════════════════
+     QUANTITATIVE SECTION — END
+════════════════════════════════════════ -->
+
+
+<!-- ═══════════════════════════════════════
+     VERBAL SECTION — START
+════════════════════════════════════════ -->
+<div class="main-section" id="sec-verbal">
+  <div class="main-section-header" onclick="toggleSection('sec-verbal')">
+    <div class="main-section-pill verbal-pill">◈ Verbal <span class="pill-chevron">⌄</span></div>
+    <span class="main-section-meta" id="meta-verbal"></span>
+    <div class="main-section-line"></div>
+  </div>
+  <div class="main-section-body">
+
+    <!-- ── V·CH01 · Inference ── -->
+    <div class="chapter" id="v-ch1">
+      <div class="chapter-header" onclick="toggleChapter('v-ch1')">
+        <div class="chapter-header-left">
+          <span class="chapter-num">V · CH 01</span>
+          <span class="chapter-name">Inference</span>
+          <span class="chapter-count" id="count-v-ch1"></span>
+        </div>
+        <span class="chevron">⌄</span>
+      </div>
+      <div class="chapter-body">
+        <div class="section-tabs">
+          <button class="tab-btn active-all" onclick="showTab('v-ch1','all',this)">All</button>
+          <button class="tab-btn" onclick="showTab('v-ch1','pre',this)">Pre-Class</button>
+          <button class="tab-btn" onclick="showTab('v-ch1','in',this)">In-Class</button>
+          <button class="tab-btn" onclick="showTab('v-ch1','post',this)">Post-Class</button>
+          <button class="tab-btn" onclick="showTab('v-ch1','og',this)">OG</button>
+        </div>
+        <!-- ALL -->
+        <div class="all-panel visible" id="v-ch1-all">
+          <div class="all-group">
+            <div class="all-section-label og">OG</div>
+            <div class="card">
+              <div class="card-meta"><span class="q-number">Q619</span><span class="q-type">Inference</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch1-Q619">Ask faculty</label></div>
+              <div class="question-body">
+                <div class="stem">Neuroscientist: Memory evolved to help animals react appropriately to situations they encounter by drawing on the past experience of similar situations. But this does not require that animals perfectly recall every detail of all their experiences. Instead, to function well, memory should generalize from past experiences that are similar to the current one.</div>
+                <div class="stem" style="margin-top:10px;">The neuroscientist's statements, if true, most strongly support which of the following conclusions?</div>
+              </div>
+              <div class="choices">
+                <div class="choice"><span class="choice-label">A</span>At least some animals perfectly recall every detail of at least some past experiences.</div>
+                <div class="choice"><span class="choice-label">B</span>Perfectly recalling every detail of all their past experiences could help at least some animals react more appropriately than they otherwise would to new situations.</div>
+                <div class="choice"><span class="choice-label">C</span>Generalizing from past experiences requires clear memories of most if not all the details of those experiences.</div>
+                <div class="choice"><span class="choice-label">D</span>Recalling every detail of all past experiences would be incompatible with any ability to generalize from those experiences.</div>
+                <div class="choice"><span class="choice-label">E</span>Animals can often react more appropriately to situations if they draw on generalizations from past experiences of similar situations.</div>
+              </div>
+              <div class="notes-label">Notes / Remarks</div>
+              <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+            </div>
+            <div class="card">
+              <div class="card-meta"><span class="q-number">Q709</span><span class="q-type">Inference</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch1-Q709">Ask faculty</label></div>
+              <div class="question-body">
+                <div class="stem">The total market value of real estate in Altonville has steadily declined over the past four years. This decline has meant the overall figure on which the city's property tax is based—the assessed value of that real estate—has also declined. Moreover, the percentage of assessed value that was paid as property taxes to the city did not change during this period.</div>
+                <div class="stem" style="margin-top:10px;">The information above most strongly supports which of the following?</div>
+              </div>
+              <div class="choices">
+                <div class="choice"><span class="choice-label">A</span>Money collected from property taxes provided most of Altonville's revenue during the past four years.</div>
+                <div class="choice"><span class="choice-label">B</span>The percentage of Altonville's overall revenue that was collected from property taxes did not change over the past four years.</div>
+                <div class="choice"><span class="choice-label">C</span>Altonville officials had proposed raising property tax rates during the past four years but never did so because of strong opposition from property owners.</div>
+                <div class="choice"><span class="choice-label">D</span>The total amount of revenue that Altonville has collected from property taxes has declined over the past four years.</div>
+                <div class="choice"><span class="choice-label">E</span>During the past four years, Altonville officials also did not increase tax rates on other sources of revenue such as retail sales or business profits.</div>
+              </div>
+              <div class="notes-label">Notes / Remarks</div>
+              <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+            </div>
+            <div class="card">
+              <div class="card-meta"><span class="q-number">Q725</span><span class="q-type">Inference</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch1-Q725">Ask faculty</label></div>
+              <div class="question-body">
+                <div class="stem">Transportation expenses accounted for a large portion of the total dollar amount spent on trips for pleasure by residents of the United States in 1997, and about half of the total dollar amount spent on transportation was for airfare. However, the large majority of United States residents who took trips for pleasure in 1997 did not travel by airplane but used other means of transportation.</div>
+                <div class="stem" style="margin-top:10px;">If the statements above are true, which of the following must also be true about United States residents who took trips for pleasure in 1997?</div>
+              </div>
+              <div class="choices">
+                <div class="choice"><span class="choice-label">A</span>Most of those who traveled by airplane did so because the airfare to their destination was lower than the cost of other available means of transportation.</div>
+                <div class="choice"><span class="choice-label">B</span>Most of those who traveled by airplane did so because other means of transportation to their destination were unavailable.</div>
+                <div class="choice"><span class="choice-label">C</span>Per mile traveled, those who traveled by airplane tended to spend more on transportation to their destination than did those who used other means of transportation.</div>
+                <div class="choice"><span class="choice-label">D</span>Overall, people who did not travel by airplane had lower average transportation expenses than people who did.</div>
+                <div class="choice"><span class="choice-label">E</span>Those who traveled by airplane spent about as much, on average, on other means of transportation as they did on airfare.</div>
+              </div>
+              <div class="notes-label">Notes / Remarks</div>
+              <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+            </div>
+            <div class="card">
+              <div class="card-meta"><span class="q-number">Q733</span><span class="q-type">Inference</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch1-Q733">Ask faculty</label></div>
+              <div class="question-body">
+                <div class="stem">Shipping clerk: The five specially ordered shipments sent out last week were sent out on Thursday. Last week, all of the shipments sent out on Friday consisted entirely of building supplies, and the shipping department then closed for the weekend. Four shipments were sent to Truax Construction last week, only three of which consisted of building supplies.</div>
+                <div class="stem" style="margin-top:10px;">If the shipping clerk's statements are true, which of the following must also be true?</div>
+              </div>
+              <div class="choices">
+                <div class="choice"><span class="choice-label">A</span>At least one of the shipments sent to Truax Construction last week was specially ordered.</div>
+                <div class="choice"><span class="choice-label">B</span>At least one of last week's specially ordered shipments did not consist of building supplies.</div>
+                <div class="choice"><span class="choice-label">C</span>At least one of the shipments sent to Truax Construction was not sent out on Thursday of last week.</div>
+                <div class="choice"><span class="choice-label">D</span>At least one of the shipments sent out on Friday of last week was sent to Truax Construction.</div>
+                <div class="choice"><span class="choice-label">E</span>At least one of the shipments sent to Truax Construction last week was sent out before Friday.</div>
+              </div>
+              <div class="notes-label">Notes / Remarks</div>
+              <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+            </div>
+          </div>
+        </div><!-- /v-ch1-all -->
+        <div class="section-panel" id="v-ch1-pre"><div class="empty">No pre-class questions added yet.</div></div>
+        <div class="section-panel" id="v-ch1-in"><div class="empty">No in-class questions added yet.</div></div>
+        <div class="section-panel" id="v-ch1-post"><div class="empty">No post-class questions added yet.</div></div>
+        <!-- OG -->
+        <div class="section-panel" id="v-ch1-og">
+          <div class="s-tag og">OG</div>
+          <div class="card">
+            <div class="card-meta"><span class="q-number">Q619</span><span class="q-type">Inference</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch1-Q619-og">Ask faculty</label></div>
+            <div class="question-body">
+              <div class="stem">Neuroscientist: Memory evolved to help animals react appropriately to situations they encounter by drawing on the past experience of similar situations. But this does not require that animals perfectly recall every detail of all their experiences. Instead, to function well, memory should generalize from past experiences that are similar to the current one.</div>
+              <div class="stem" style="margin-top:10px;">The neuroscientist's statements, if true, most strongly support which of the following conclusions?</div>
+            </div>
+            <div class="choices">
+              <div class="choice"><span class="choice-label">A</span>At least some animals perfectly recall every detail of at least some past experiences.</div>
+              <div class="choice"><span class="choice-label">B</span>Perfectly recalling every detail of all their past experiences could help at least some animals react more appropriately than they otherwise would to new situations.</div>
+              <div class="choice"><span class="choice-label">C</span>Generalizing from past experiences requires clear memories of most if not all the details of those experiences.</div>
+              <div class="choice"><span class="choice-label">D</span>Recalling every detail of all past experiences would be incompatible with any ability to generalize from those experiences.</div>
+              <div class="choice"><span class="choice-label">E</span>Animals can often react more appropriately to situations if they draw on generalizations from past experiences of similar situations.</div>
+            </div>
+            <div class="notes-label">Notes / Remarks</div>
+            <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+          </div>
+          <div class="card">
+            <div class="card-meta"><span class="q-number">Q709</span><span class="q-type">Inference</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch1-Q709-og">Ask faculty</label></div>
+            <div class="question-body">
+              <div class="stem">The total market value of real estate in Altonville has steadily declined over the past four years. This decline has meant the overall figure on which the city's property tax is based—the assessed value of that real estate—has also declined. Moreover, the percentage of assessed value that was paid as property taxes to the city did not change during this period.</div>
+              <div class="stem" style="margin-top:10px;">The information above most strongly supports which of the following?</div>
+            </div>
+            <div class="choices">
+              <div class="choice"><span class="choice-label">A</span>Money collected from property taxes provided most of Altonville's revenue during the past four years.</div>
+              <div class="choice"><span class="choice-label">B</span>The percentage of Altonville's overall revenue that was collected from property taxes did not change over the past four years.</div>
+              <div class="choice"><span class="choice-label">C</span>Altonville officials had proposed raising property tax rates during the past four years but never did so because of strong opposition from property owners.</div>
+              <div class="choice"><span class="choice-label">D</span>The total amount of revenue that Altonville has collected from property taxes has declined over the past four years.</div>
+              <div class="choice"><span class="choice-label">E</span>During the past four years, Altonville officials also did not increase tax rates on other sources of revenue such as retail sales or business profits.</div>
+            </div>
+            <div class="notes-label">Notes / Remarks</div>
+            <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+          </div>
+          <div class="card">
+            <div class="card-meta"><span class="q-number">Q725</span><span class="q-type">Inference</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch1-Q725-og">Ask faculty</label></div>
+            <div class="question-body">
+              <div class="stem">Transportation expenses accounted for a large portion of the total dollar amount spent on trips for pleasure by residents of the United States in 1997, and about half of the total dollar amount spent on transportation was for airfare. However, the large majority of United States residents who took trips for pleasure in 1997 did not travel by airplane but used other means of transportation.</div>
+              <div class="stem" style="margin-top:10px;">If the statements above are true, which of the following must also be true about United States residents who took trips for pleasure in 1997?</div>
+            </div>
+            <div class="choices">
+              <div class="choice"><span class="choice-label">A</span>Most of those who traveled by airplane did so because the airfare to their destination was lower than the cost of other available means of transportation.</div>
+              <div class="choice"><span class="choice-label">B</span>Most of those who traveled by airplane did so because other means of transportation to their destination were unavailable.</div>
+              <div class="choice"><span class="choice-label">C</span>Per mile traveled, those who traveled by airplane tended to spend more on transportation to their destination than did those who used other means of transportation.</div>
+              <div class="choice"><span class="choice-label">D</span>Overall, people who did not travel by airplane had lower average transportation expenses than people who did.</div>
+              <div class="choice"><span class="choice-label">E</span>Those who traveled by airplane spent about as much, on average, on other means of transportation as they did on airfare.</div>
+            </div>
+            <div class="notes-label">Notes / Remarks</div>
+            <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+          </div>
+          <div class="card">
+            <div class="card-meta"><span class="q-number">Q733</span><span class="q-type">Inference</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch1-Q733-og">Ask faculty</label></div>
+            <div class="question-body">
+              <div class="stem">Shipping clerk: The five specially ordered shipments sent out last week were sent out on Thursday. Last week, all of the shipments sent out on Friday consisted entirely of building supplies, and the shipping department then closed for the weekend. Four shipments were sent to Truax Construction last week, only three of which consisted of building supplies.</div>
+              <div class="stem" style="margin-top:10px;">If the shipping clerk's statements are true, which of the following must also be true?</div>
+            </div>
+            <div class="choices">
+              <div class="choice"><span class="choice-label">A</span>At least one of the shipments sent to Truax Construction last week was specially ordered.</div>
+              <div class="choice"><span class="choice-label">B</span>At least one of last week's specially ordered shipments did not consist of building supplies.</div>
+              <div class="choice"><span class="choice-label">C</span>At least one of the shipments sent to Truax Construction was not sent out on Thursday of last week.</div>
+              <div class="choice"><span class="choice-label">D</span>At least one of the shipments sent out on Friday of last week was sent to Truax Construction.</div>
+              <div class="choice"><span class="choice-label">E</span>At least one of the shipments sent to Truax Construction last week was sent out before Friday.</div>
+            </div>
+            <div class="notes-label">Notes / Remarks</div>
+            <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+          </div>
+        </div><!-- /v-ch1-og -->
+      </div><!-- /chapter-body -->
+    </div><!-- /v-ch1 -->
+
+    <!-- ── V·CH02 · Strengthen ── -->
+    <div class="chapter" id="v-ch2">
+      <div class="chapter-header" onclick="toggleChapter('v-ch2')">
+        <div class="chapter-header-left">
+          <span class="chapter-num">V · CH 02</span>
+          <span class="chapter-name">Strengthen</span>
+          <span class="chapter-count" id="count-v-ch2"></span>
+        </div>
+        <span class="chevron">⌄</span>
+      </div>
+      <div class="chapter-body">
+        <div class="section-tabs">
+          <button class="tab-btn active-all" onclick="showTab('v-ch2','all',this)">All</button>
+          <button class="tab-btn" onclick="showTab('v-ch2','pre',this)">Pre-Class</button>
+          <button class="tab-btn" onclick="showTab('v-ch2','in',this)">In-Class</button>
+          <button class="tab-btn" onclick="showTab('v-ch2','post',this)">Post-Class</button>
+          <button class="tab-btn" onclick="showTab('v-ch2','og',this)">OG</button>
+        </div>
+        <!-- ALL -->
+        <div class="all-panel visible" id="v-ch2-all">
+          <div class="all-group">
+            <div class="all-section-label og">OG</div>
+            <div class="card">
+              <div class="card-meta"><span class="q-number">Q644</span><span class="q-type">Strengthen</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch2-Q644">Ask faculty</label></div>
+              <div class="question-body">
+                <div class="stem">Manufacturers of mechanical pencils make most of their profit on pencil leads rather than on the pencils themselves. The Write Company, which cannot sell its leads as cheaply as other manufacturers can, plans to alter the design of its mechanical pencil so that it will accept only a newly designed Write Company lead, which will be sold at the same price as the Write Company's current lead.</div>
+                <div class="stem" style="margin-top:10px;">Which of the following, if true, most strongly supports the Write Company's projection that its plan will lead to an increase in its sales of pencil leads?</div>
+              </div>
+              <div class="choices">
+                <div class="choice"><span class="choice-label">A</span>The new Write Company pencil will be introduced at a price higher than the price the Write Company charges for its current model.</div>
+                <div class="choice"><span class="choice-label">B</span>In the foreseeable future, manufacturers of mechanical pencils will probably have to raise the prices they charge for mechanical pencils.</div>
+                <div class="choice"><span class="choice-label">C</span>The newly designed Write Company lead will cost somewhat more to manufacture than the Write Company's current lead does.</div>
+                <div class="choice"><span class="choice-label">D</span>A rival manufacturer recently announced similar plans to introduce a mechanical pencil that would accept only the leads produced by that manufacturer.</div>
+                <div class="choice"><span class="choice-label">E</span>In extensive test marketing, mechanical-pencil users found the new Write Company pencil markedly superior to other mechanical pencils they had used.</div>
+              </div>
+              <div class="notes-label">Notes / Remarks</div>
+              <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+            </div>
+            <div class="card">
+              <div class="card-meta"><span class="q-number">Q620</span><span class="q-type">Strengthen</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch2-Q620">Ask faculty</label></div>
+              <div class="question-body">
+                <div class="stem">In Country X's last election, the Reform Party beat its main opponent, the Conservative Party, although pollsters, employing in-person interviews shortly before the vote, had projected a Conservative Party victory. Afterward, the pollsters determined that, unlike Conservative Party supporters, Reform Party supporters were less likely to express their party preference during in-person interviews than they were during telephone interviews. Therefore, using only telephone interviews instead would likely result in more accurate projections for the next election.</div>
+                <div class="stem" style="margin-top:10px;">Which of the following statements, if true, would most support the argument in the passage?</div>
+              </div>
+              <div class="choices">
+                <div class="choice"><span class="choice-label">A</span>The number of voters in Country X's next election will be significantly larger than the number of voters in the last election.</div>
+                <div class="choice"><span class="choice-label">B</span>The Conservative Party will win the next election.</div>
+                <div class="choice"><span class="choice-label">C</span>For each person interviewed in telephone polls before the next election, pollsters will be able to reasonably determine the likelihood of that person voting.</div>
+                <div class="choice"><span class="choice-label">D</span>People who expressed no party preference during the in-person interviews shortly before Country X's last election did not outnumber the people who expressed a preference for the Conservative Party.</div>
+                <div class="choice"><span class="choice-label">E</span>In the next election, pollsters will be able to conduct more in-person interviews than telephone interviews.</div>
+              </div>
+              <div class="notes-label">Notes / Remarks</div>
+              <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+            </div>
+            <div class="card">
+              <div class="card-meta"><span class="q-number">Q626</span><span class="q-type">Strengthen</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch2-Q626">Ask faculty</label></div>
+              <div class="question-body">
+                <div class="stem">Astronomer: Most stars are born in groups of thousands, each star in a group forming from the same parent cloud of gas. Each cloud has a unique, homogeneous chemical composition. Therefore, whenever two stars have the same chemical composition as each other, they must have originated from the same cloud of gas.</div>
+                <div class="stem" style="margin-top:10px;">Which of the following, if true, would most strengthen the astronomer's argument?</div>
+              </div>
+              <div class="choices">
+                <div class="choice"><span class="choice-label">A</span>In some groups of stars, not every star originated from the same parent cloud of gas.</div>
+                <div class="choice"><span class="choice-label">B</span>Clouds of gas of similar or identical chemical composition may be remote from each other.</div>
+                <div class="choice"><span class="choice-label">C</span>Whenever a star forms, it inherits the chemical composition of its parent cloud of gas.</div>
+                <div class="choice"><span class="choice-label">D</span>Many stars in vastly different parts of the universe are quite similar in their chemical compositions.</div>
+                <div class="choice"><span class="choice-label">E</span>Astronomers can at least sometimes precisely determine whether a star has the same chemical composition as its parent cloud of gas.</div>
+              </div>
+              <div class="notes-label">Notes / Remarks</div>
+              <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+            </div>
+          </div>
+        </div><!-- /v-ch2-all -->
+        <div class="section-panel" id="v-ch2-pre"><div class="empty">No pre-class questions added yet.</div></div>
+        <div class="section-panel" id="v-ch2-in"><div class="empty">No in-class questions added yet.</div></div>
+        <div class="section-panel" id="v-ch2-post"><div class="empty">No post-class questions added yet.</div></div>
+        <!-- OG -->
+        <div class="section-panel" id="v-ch2-og">
+          <div class="s-tag og">OG</div>
+          <div class="card">
+            <div class="card-meta"><span class="q-number">Q644</span><span class="q-type">Strengthen</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch2-Q644-og">Ask faculty</label></div>
+            <div class="question-body">
+              <div class="stem">Manufacturers of mechanical pencils make most of their profit on pencil leads rather than on the pencils themselves. The Write Company, which cannot sell its leads as cheaply as other manufacturers can, plans to alter the design of its mechanical pencil so that it will accept only a newly designed Write Company lead, which will be sold at the same price as the Write Company's current lead.</div>
+              <div class="stem" style="margin-top:10px;">Which of the following, if true, most strongly supports the Write Company's projection that its plan will lead to an increase in its sales of pencil leads?</div>
+            </div>
+            <div class="choices">
+              <div class="choice"><span class="choice-label">A</span>The new Write Company pencil will be introduced at a price higher than the price the Write Company charges for its current model.</div>
+              <div class="choice"><span class="choice-label">B</span>In the foreseeable future, manufacturers of mechanical pencils will probably have to raise the prices they charge for mechanical pencils.</div>
+              <div class="choice"><span class="choice-label">C</span>The newly designed Write Company lead will cost somewhat more to manufacture than the Write Company's current lead does.</div>
+              <div class="choice"><span class="choice-label">D</span>A rival manufacturer recently announced similar plans to introduce a mechanical pencil that would accept only the leads produced by that manufacturer.</div>
+              <div class="choice"><span class="choice-label">E</span>In extensive test marketing, mechanical-pencil users found the new Write Company pencil markedly superior to other mechanical pencils they had used.</div>
+            </div>
+            <div class="notes-label">Notes / Remarks</div>
+            <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+          </div>
+          <div class="card">
+            <div class="card-meta"><span class="q-number">Q620</span><span class="q-type">Strengthen</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch2-Q620-og">Ask faculty</label></div>
+            <div class="question-body">
+              <div class="stem">In Country X's last election, the Reform Party beat its main opponent, the Conservative Party, although pollsters, employing in-person interviews shortly before the vote, had projected a Conservative Party victory. Afterward, the pollsters determined that, unlike Conservative Party supporters, Reform Party supporters were less likely to express their party preference during in-person interviews than they were during telephone interviews. Therefore, using only telephone interviews instead would likely result in more accurate projections for the next election.</div>
+              <div class="stem" style="margin-top:10px;">Which of the following statements, if true, would most support the argument in the passage?</div>
+            </div>
+            <div class="choices">
+              <div class="choice"><span class="choice-label">A</span>The number of voters in Country X's next election will be significantly larger than the number of voters in the last election.</div>
+              <div class="choice"><span class="choice-label">B</span>The Conservative Party will win the next election.</div>
+              <div class="choice"><span class="choice-label">C</span>For each person interviewed in telephone polls before the next election, pollsters will be able to reasonably determine the likelihood of that person voting.</div>
+              <div class="choice"><span class="choice-label">D</span>People who expressed no party preference during the in-person interviews shortly before Country X's last election did not outnumber the people who expressed a preference for the Conservative Party.</div>
+              <div class="choice"><span class="choice-label">E</span>In the next election, pollsters will be able to conduct more in-person interviews than telephone interviews.</div>
+            </div>
+            <div class="notes-label">Notes / Remarks</div>
+            <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+          </div>
+          <div class="card">
+            <div class="card-meta"><span class="q-number">Q626</span><span class="q-type">Strengthen</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch2-Q626-og">Ask faculty</label></div>
+            <div class="question-body">
+              <div class="stem">Astronomer: Most stars are born in groups of thousands, each star in a group forming from the same parent cloud of gas. Each cloud has a unique, homogeneous chemical composition. Therefore, whenever two stars have the same chemical composition as each other, they must have originated from the same cloud of gas.</div>
+              <div class="stem" style="margin-top:10px;">Which of the following, if true, would most strengthen the astronomer's argument?</div>
+            </div>
+            <div class="choices">
+              <div class="choice"><span class="choice-label">A</span>In some groups of stars, not every star originated from the same parent cloud of gas.</div>
+              <div class="choice"><span class="choice-label">B</span>Clouds of gas of similar or identical chemical composition may be remote from each other.</div>
+              <div class="choice"><span class="choice-label">C</span>Whenever a star forms, it inherits the chemical composition of its parent cloud of gas.</div>
+              <div class="choice"><span class="choice-label">D</span>Many stars in vastly different parts of the universe are quite similar in their chemical compositions.</div>
+              <div class="choice"><span class="choice-label">E</span>Astronomers can at least sometimes precisely determine whether a star has the same chemical composition as its parent cloud of gas.</div>
+            </div>
+            <div class="notes-label">Notes / Remarks</div>
+            <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+          </div>
+        </div><!-- /v-ch2-og -->
+      </div><!-- /chapter-body -->
+    </div><!-- /v-ch2 -->
+
+    <!-- ── V·CH03 · Weaken ── -->
+    <div class="chapter" id="v-ch3">
+      <div class="chapter-header" onclick="toggleChapter('v-ch3')">
+        <div class="chapter-header-left">
+          <span class="chapter-num">V · CH 03</span>
+          <span class="chapter-name">Weaken</span>
+          <span class="chapter-count" id="count-v-ch3"></span>
+        </div>
+        <span class="chevron">⌄</span>
+      </div>
+      <div class="chapter-body">
+        <div class="section-tabs">
+          <button class="tab-btn active-all" onclick="showTab('v-ch3','all',this)">All</button>
+          <button class="tab-btn" onclick="showTab('v-ch3','pre',this)">Pre-Class</button>
+          <button class="tab-btn" onclick="showTab('v-ch3','in',this)">In-Class</button>
+          <button class="tab-btn" onclick="showTab('v-ch3','post',this)">Post-Class</button>
+          <button class="tab-btn" onclick="showTab('v-ch3','og',this)">OG</button>
+        </div>
+        <!-- ALL -->
+        <div class="all-panel visible" id="v-ch3-all">
+          <div class="all-group">
+            <div class="all-section-label og">OG</div>
+            <div class="card">
+              <div class="card-meta"><span class="q-number">Q632</span><span class="q-type">Weaken</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch3-Q632">Ask faculty</label></div>
+              <div class="question-body">
+                <div class="stem">An unusually severe winter occurred in Europe after the continent was blanketed by a blue haze resulting from the eruption of the Laki Volcano in the European republic of Iceland in the summer of 1984. Thus, it is evident that major eruptions cause the atmosphere to become cooler than it would be otherwise.</div>
+                <div class="stem" style="margin-top:10px;">Which of the following statements, if true, most seriously weakens the argument above?</div>
+              </div>
+              <div class="choices">
+                <div class="choice"><span class="choice-label">A</span>The cooling effect triggered by volcanic eruptions in 1985 was counteracted by an unusual warming of Pacific waters.</div>
+                <div class="choice"><span class="choice-label">B</span>There is a strong statistical link between volcanic eruptions and the severity of the rainy season in India.</div>
+                <div class="choice"><span class="choice-label">C</span>A few months after El Chichón's large eruption in April 1982, air temperatures throughout the region remained higher than expected given the long-term weather trends.</div>
+                <div class="choice"><span class="choice-label">D</span>The climatic effects of major volcanic eruptions can temporarily mask the general warming trend resulting from an excess of carbon dioxide in the atmosphere.</div>
+                <div class="choice"><span class="choice-label">E</span>Three months after an early springtime eruption in South America during the late nineteenth century, sea surface temperatures near the coast began to fall.</div>
+              </div>
+              <div class="notes-label">Notes / Remarks</div>
+              <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+            </div>
+            <div class="card">
+              <div class="card-meta"><span class="q-number">Q698</span><span class="q-type">Weaken</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch3-Q698">Ask faculty</label></div>
+              <div class="question-body">
+                <div class="stem">Kate: The recent decline in numbers of the Tennessee warbler, a North American songbird that migrates each fall to coffee plantations in South America, is due to the elimination of the dense tree cover that formerly was a feature of most South American coffee plantations.</div>
+                <div class="stem" style="margin-top:10px;">Scott: The population of the spruce budworm, the warbler's favorite prey in North America, has been dropping. This is a more likely explanation of the warbler's decline.</div>
+                <div class="stem" style="margin-top:10px;">Which of the following, if true, most seriously calls Scott's hypothesis into question?</div>
+              </div>
+              <div class="choices">
+                <div class="choice"><span class="choice-label">A</span>The numbers of the Baltimore oriole, a songbird that does not eat budworms but is as dependent on South American coffee plantations as is the Tennessee warbler, are declining.</div>
+                <div class="choice"><span class="choice-label">B</span>The spruce budworm population has dropped because of a disease that can infect budworms but not Tennessee warblers.</div>
+                <div class="choice"><span class="choice-label">C</span>The drop in the population of the spruce budworm is expected to be only temporary.</div>
+                <div class="choice"><span class="choice-label">D</span>Many Tennessee warblers have begun migrating in the fall to places other than traditional coffee plantations.</div>
+                <div class="choice"><span class="choice-label">E</span>Although many North American songbirds have declined in numbers, no other species has experienced as great a decline as the Tennessee warbler.</div>
+              </div>
+              <div class="notes-label">Notes / Remarks</div>
+              <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+            </div>
+            <div class="card">
+              <div class="card-meta"><span class="q-number">Q736</span><span class="q-type">Weaken</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch3-Q736">Ask faculty</label></div>
+              <div class="question-body">
+                <div class="stem">A group of children of various ages was read stories in which people caused harm, with some of those people doing so intentionally, and some accidentally. When asked about appropriate punishments for those who had caused harm, the younger children, unlike the older ones, assigned punishments that did not vary according to whether the harm was done intentionally or accidentally. Younger children, then, do not regard people's intentions as relevant to punishment.</div>
+                <div class="stem" style="margin-top:10px;">Which of the following, if true, would most seriously weaken the conclusion above?</div>
+              </div>
+              <div class="choices">
+                <div class="choice"><span class="choice-label">A</span>In interpreting these stories, the listeners had to draw on a relatively mature sense of human psychology in order to tell whether harm was produced intentionally or accidentally.</div>
+                <div class="choice"><span class="choice-label">B</span>In these stories, the severity of the harm produced was clearly stated.</div>
+                <div class="choice"><span class="choice-label">C</span>Younger children are as likely to produce harm unintentionally as older children.</div>
+                <div class="choice"><span class="choice-label">D</span>The older children assigned punishment in a way that closely resembled the way adults had assigned punishment in a similar experiment.</div>
+                <div class="choice"><span class="choice-label">E</span>The younger children assigned punishments that varied according to the severity of the harm done by the agents in the stories.</div>
+              </div>
+              <div class="notes-label">Notes / Remarks</div>
+              <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+            </div>
+            <div class="card">
+              <div class="card-meta"><span class="q-number">Q743</span><span class="q-type">Weaken</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch3-Q743">Ask faculty</label></div>
+              <div class="question-body">
+                <div class="stem">To reduce waste of raw materials, the government of Sperland is considering requiring household appliances to be broken down for salvage when discarded. To cover the cost of salvage, the government is planning to charge a fee, which would be imposed when the appliance is first sold. Imposing the fee at the time of salvage would reduce waste more effectively, however, because consumers tend to keep old appliances longer if they are faced with a fee for discarding them.</div>
+                <div class="stem" style="margin-top:10px;">Which of the following, if true, most seriously weakens the argument?</div>
+              </div>
+              <div class="choices">
+                <div class="choice"><span class="choice-label">A</span>Increasing the cost of disposing of an appliance properly increases the incentive to dispose of it improperly.</div>
+                <div class="choice"><span class="choice-label">B</span>The fee provides manufacturers with no incentive to produce appliances that are more durable.</div>
+                <div class="choice"><span class="choice-label">C</span>For people who have bought new appliances recently, the salvage fee would not need to be paid for a number of years.</div>
+                <div class="choice"><span class="choice-label">D</span>People who sell their used, working appliances to others would not need to pay the salvage fee.</div>
+                <div class="choice"><span class="choice-label">E</span>Many nonfunctioning appliances that are currently discarded could be repaired at relatively little expense.</div>
+              </div>
+              <div class="notes-label">Notes / Remarks</div>
+              <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+            </div>
+            <div class="card">
+              <div class="card-meta"><span class="q-number">Q744</span><span class="q-type">Weaken</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch3-Q744">Ask faculty</label></div>
+              <div class="question-body">
+                <div class="stem">Twelve years ago and again five years ago, there were extended periods when the Changir Republic's currency, the pundra, was weak: Its value was unusually low relative to the world's most stable currencies. Both times, a weak pundra made Changir's manufactured products a bargain on world markets, and Changir's exports were up substantially. Now some politicians are saying in order to cause another similarly sized increase in exports, the government should allow the pundra to become weak again.</div>
+                <div class="stem" style="margin-top:10px;">Which of the following, if true, provides the government with the strongest grounds to doubt that if followed, the politicians' recommendation will achieve its aim?</div>
+              </div>
+              <div class="choices">
+                <div class="choice"><span class="choice-label">A</span>Several of the politicians now recommending the pundra be allowed to become weak made that same recommendation before each of the last two periods of currency weakness.</div>
+                <div class="choice"><span class="choice-label">B</span>After several decades of operating well below peak capacity, Changir's manufacturing sector is now operating at near-peak levels.</div>
+                <div class="choice"><span class="choice-label">C</span>The economy of a country experiencing a rise in exports will become healthier only if the country's currency is strong or the rise in exports is significant.</div>
+                <div class="choice"><span class="choice-label">D</span>Those countries with manufactured products competing with Changir's on the world market all currently have stable currencies.</div>
+                <div class="choice"><span class="choice-label">E</span>A sharp improvement in the efficiency of Changir's manufacturing plants would make Changir's products a bargain in world markets even without any weakening of the pundra relative to other currencies.</div>
+              </div>
+              <div class="notes-label">Notes / Remarks</div>
+              <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+            </div>
+          </div>
+        </div><!-- /v-ch3-all -->
+
+        <div class="section-panel" id="v-ch3-pre"><div class="empty">No pre-class questions added yet.</div></div>
+        <div class="section-panel" id="v-ch3-in"><div class="empty">No in-class questions added yet.</div></div>
+        <div class="section-panel" id="v-ch3-post"><div class="empty">No post-class questions added yet.</div></div>
+        <!-- OG -->
+        <div class="section-panel" id="v-ch3-og">
+          <div class="s-tag og">OG</div>
+          <div class="card">
+            <div class="card-meta"><span class="q-number">Q632</span><span class="q-type">Weaken</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch3-Q632-og">Ask faculty</label></div>
+            <div class="question-body">
+              <div class="stem">An unusually severe winter occurred in Europe after the continent was blanketed by a blue haze resulting from the eruption of the Laki Volcano in the European republic of Iceland in the summer of 1984. Thus, it is evident that major eruptions cause the atmosphere to become cooler than it would be otherwise.</div>
+              <div class="stem" style="margin-top:10px;">Which of the following statements, if true, most seriously weakens the argument above?</div>
+            </div>
+            <div class="choices">
+              <div class="choice"><span class="choice-label">A</span>The cooling effect triggered by volcanic eruptions in 1985 was counteracted by an unusual warming of Pacific waters.</div>
+              <div class="choice"><span class="choice-label">B</span>There is a strong statistical link between volcanic eruptions and the severity of the rainy season in India.</div>
+              <div class="choice"><span class="choice-label">C</span>A few months after El Chichón's large eruption in April 1982, air temperatures throughout the region remained higher than expected given the long-term weather trends.</div>
+              <div class="choice"><span class="choice-label">D</span>The climatic effects of major volcanic eruptions can temporarily mask the general warming trend resulting from an excess of carbon dioxide in the atmosphere.</div>
+              <div class="choice"><span class="choice-label">E</span>Three months after an early springtime eruption in South America during the late nineteenth century, sea surface temperatures near the coast began to fall.</div>
+            </div>
+            <div class="notes-label">Notes / Remarks</div>
+            <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+          </div>
+          <div class="card">
+            <div class="card-meta"><span class="q-number">Q698</span><span class="q-type">Weaken</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch3-Q698-og">Ask faculty</label></div>
+            <div class="question-body">
+              <div class="stem">Kate: The recent decline in numbers of the Tennessee warbler, a North American songbird that migrates each fall to coffee plantations in South America, is due to the elimination of the dense tree cover that formerly was a feature of most South American coffee plantations.</div>
+              <div class="stem" style="margin-top:10px;">Scott: The population of the spruce budworm, the warbler's favorite prey in North America, has been dropping. This is a more likely explanation of the warbler's decline.</div>
+              <div class="stem" style="margin-top:10px;">Which of the following, if true, most seriously calls Scott's hypothesis into question?</div>
+            </div>
+            <div class="choices">
+              <div class="choice"><span class="choice-label">A</span>The numbers of the Baltimore oriole, a songbird that does not eat budworms but is as dependent on South American coffee plantations as is the Tennessee warbler, are declining.</div>
+              <div class="choice"><span class="choice-label">B</span>The spruce budworm population has dropped because of a disease that can infect budworms but not Tennessee warblers.</div>
+              <div class="choice"><span class="choice-label">C</span>The drop in the population of the spruce budworm is expected to be only temporary.</div>
+              <div class="choice"><span class="choice-label">D</span>Many Tennessee warblers have begun migrating in the fall to places other than traditional coffee plantations.</div>
+              <div class="choice"><span class="choice-label">E</span>Although many North American songbirds have declined in numbers, no other species has experienced as great a decline as the Tennessee warbler.</div>
+            </div>
+            <div class="notes-label">Notes / Remarks</div>
+            <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+          </div>
+          <div class="card">
+            <div class="card-meta"><span class="q-number">Q736</span><span class="q-type">Weaken</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch3-Q736-og">Ask faculty</label></div>
+            <div class="question-body">
+              <div class="stem">A group of children of various ages was read stories in which people caused harm, with some of those people doing so intentionally, and some accidentally. When asked about appropriate punishments for those who had caused harm, the younger children, unlike the older ones, assigned punishments that did not vary according to whether the harm was done intentionally or accidentally. Younger children, then, do not regard people's intentions as relevant to punishment.</div>
+              <div class="stem" style="margin-top:10px;">Which of the following, if true, would most seriously weaken the conclusion above?</div>
+            </div>
+            <div class="choices">
+              <div class="choice"><span class="choice-label">A</span>In interpreting these stories, the listeners had to draw on a relatively mature sense of human psychology in order to tell whether harm was produced intentionally or accidentally.</div>
+              <div class="choice"><span class="choice-label">B</span>In these stories, the severity of the harm produced was clearly stated.</div>
+              <div class="choice"><span class="choice-label">C</span>Younger children are as likely to produce harm unintentionally as older children.</div>
+              <div class="choice"><span class="choice-label">D</span>The older children assigned punishment in a way that closely resembled the way adults had assigned punishment in a similar experiment.</div>
+              <div class="choice"><span class="choice-label">E</span>The younger children assigned punishments that varied according to the severity of the harm done by the agents in the stories.</div>
+            </div>
+            <div class="notes-label">Notes / Remarks</div>
+            <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+          </div>
+          <div class="card">
+            <div class="card-meta"><span class="q-number">Q743</span><span class="q-type">Weaken</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch3-Q743-og">Ask faculty</label></div>
+            <div class="question-body">
+              <div class="stem">To reduce waste of raw materials, the government of Sperland is considering requiring household appliances to be broken down for salvage when discarded. To cover the cost of salvage, the government is planning to charge a fee, which would be imposed when the appliance is first sold. Imposing the fee at the time of salvage would reduce waste more effectively, however, because consumers tend to keep old appliances longer if they are faced with a fee for discarding them.</div>
+              <div class="stem" style="margin-top:10px;">Which of the following, if true, most seriously weakens the argument?</div>
+            </div>
+            <div class="choices">
+              <div class="choice"><span class="choice-label">A</span>Increasing the cost of disposing of an appliance properly increases the incentive to dispose of it improperly.</div>
+              <div class="choice"><span class="choice-label">B</span>The fee provides manufacturers with no incentive to produce appliances that are more durable.</div>
+              <div class="choice"><span class="choice-label">C</span>For people who have bought new appliances recently, the salvage fee would not need to be paid for a number of years.</div>
+              <div class="choice"><span class="choice-label">D</span>People who sell their used, working appliances to others would not need to pay the salvage fee.</div>
+              <div class="choice"><span class="choice-label">E</span>Many nonfunctioning appliances that are currently discarded could be repaired at relatively little expense.</div>
+            </div>
+            <div class="notes-label">Notes / Remarks</div>
+            <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+          </div>
+          <div class="card">
+            <div class="card-meta"><span class="q-number">Q744</span><span class="q-type">Weaken</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch3-Q744-og">Ask faculty</label></div>
+            <div class="question-body">
+              <div class="stem">Twelve years ago and again five years ago, there were extended periods when the Changir Republic's currency, the pundra, was weak: Its value was unusually low relative to the world's most stable currencies. Both times, a weak pundra made Changir's manufactured products a bargain on world markets, and Changir's exports were up substantially. Now some politicians are saying in order to cause another similarly sized increase in exports, the government should allow the pundra to become weak again.</div>
+              <div class="stem" style="margin-top:10px;">Which of the following, if true, provides the government with the strongest grounds to doubt that if followed, the politicians' recommendation will achieve its aim?</div>
+            </div>
+            <div class="choices">
+              <div class="choice"><span class="choice-label">A</span>Several of the politicians now recommending the pundra be allowed to become weak made that same recommendation before each of the last two periods of currency weakness.</div>
+              <div class="choice"><span class="choice-label">B</span>After several decades of operating well below peak capacity, Changir's manufacturing sector is now operating at near-peak levels.</div>
+              <div class="choice"><span class="choice-label">C</span>The economy of a country experiencing a rise in exports will become healthier only if the country's currency is strong or the rise in exports is significant.</div>
+              <div class="choice"><span class="choice-label">D</span>Those countries with manufactured products competing with Changir's on the world market all currently have stable currencies.</div>
+              <div class="choice"><span class="choice-label">E</span>A sharp improvement in the efficiency of Changir's manufacturing plants would make Changir's products a bargain in world markets even without any weakening of the pundra relative to other currencies.</div>
+            </div>
+            <div class="notes-label">Notes / Remarks</div>
+            <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+          </div>
+        </div><!-- /v-ch3-og -->
+      </div><!-- /chapter-body -->
+    </div><!-- /v-ch3 -->
+
+    <!-- ── V·CH04 · Misc ── -->
+    <div class="chapter" id="v-ch4">
+      <div class="chapter-header" onclick="toggleChapter('v-ch4')">
+        <div class="chapter-header-left">
+          <span class="chapter-num">V · CH 04</span>
+          <span class="chapter-name">Misc</span>
+          <span class="chapter-count" id="count-v-ch4"></span>
+        </div>
+        <span class="chevron">⌄</span>
+      </div>
+      <div class="chapter-body">
+        <div class="section-tabs">
+          <button class="tab-btn active-all" onclick="showTab('v-ch4','all',this)">All</button>
+          <button class="tab-btn" onclick="showTab('v-ch4','pre',this)">Pre-Class</button>
+          <button class="tab-btn" onclick="showTab('v-ch4','in',this)">In-Class</button>
+          <button class="tab-btn" onclick="showTab('v-ch4','post',this)">Post-Class</button>
+          <button class="tab-btn" onclick="showTab('v-ch4','og',this)">OG</button>
+        </div>
+        <!-- ALL -->
+        <div class="all-panel visible" id="v-ch4-all">
+          <div class="all-group">
+            <div class="all-section-label og">OG</div>
+            <div class="card">
+              <div class="card-meta"><span class="q-number">Q—</span><span class="q-type">Complete the Argument</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch4-Qmisc1">Ask faculty</label></div>
+              <div class="question-body">
+                <div class="stem">Political theorist: Even with the best spies, area experts, and satellite surveillance, foreign policy assessments can still lack important information. In such circumstances intuitive judgment is vital. A national leader with such judgment can make good decisions about foreign policy even when current information is incomplete, since ________.</div>
+                <div class="stem" style="margin-top:10px;">Which of the following, if true, most logically completes the argument?</div>
+              </div>
+              <div class="choices">
+                <div class="choice"><span class="choice-label">A</span>the central reason for failure in foreign policy decision making is the absence of critical information</div>
+                <div class="choice"><span class="choice-label">B</span>those leaders whose foreign policy decisions have been highly ranked have also been found to have good intuitive judgment</div>
+                <div class="choice"><span class="choice-label">C</span>both intuitive judgment and good information are required for sound decision-making</div>
+                <div class="choice"><span class="choice-label">D</span>good foreign policy decisions often lead to improved methods of gathering information</div>
+                <div class="choice"><span class="choice-label">E</span>intuitive judgment can produce good decisions based on past experience, even when there are important gaps in current information</div>
+              </div>
+              <div class="notes-label">Notes / Remarks</div>
+              <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+            </div>
+            <div class="card">
+              <div class="card-meta"><span class="q-number">Q729</span><span class="q-type">Misc</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch4-Q729">Ask faculty</label></div>
+              <div class="question-body">
+                <div class="stem">Yeasts capable of leavening bread are widespread, and in the many centuries during which the ancient Egyptians made only unleavened bread, such yeasts must frequently have been mixed into bread doughs accidentally. The Egyptians, however, did not discover leavened bread until about 3000 B.C. That discovery roughly coincided with the introduction of a wheat variety that was preferable to previous varieties because its edible kernel could be removed from the husk without first toasting the grain.</div>
+                <div class="stem" style="margin-top:10px;">Which of the following, if true, provides the strongest evidence that the two developments were causally related?</div>
+              </div>
+              <div class="choices">
+                <div class="choice"><span class="choice-label">A</span>Even after the ancient Egyptians discovered leavened bread and the techniques for reliably producing it were well known, unleavened bread continued to be widely consumed.</div>
+                <div class="choice"><span class="choice-label">B</span>Only when the Egyptians stopped the practice of toasting grain were their stone-lined grain-toasting pits available for baking bread.</div>
+                <div class="choice"><span class="choice-label">C</span>Heating a wheat kernel destroys its gluten, a protein that must be present in order for yeast to leaven bread dough.</div>
+                <div class="choice"><span class="choice-label">D</span>The new variety of wheat, which had a more delicate flavor because it was not toasted, was reserved for the consumption of high officials when it first began to be grown.</div>
+                <div class="choice"><span class="choice-label">E</span>Because the husk of the new variety of wheat was more easily removed, flour made from it required less effort to produce.</div>
+              </div>
+              <div class="notes-label">Notes / Remarks</div>
+              <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+            </div>
+            <div class="card">
+              <div class="card-meta"><span class="q-number">Q737</span><span class="q-type">Misc</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch4-Q737">Ask faculty</label></div>
+              <div class="question-body">
+                <div class="stem">Mansour: We should both plan to change some of our investments from coal companies to less polluting energy companies, and here's why: Consumers are increasingly demanding nonpolluting energy, and energy companies are increasingly supplying it.</div>
+                <div class="stem" style="margin-top:10px;">Therese: I'm not sure we should do what you suggest. As demand for nonpolluting energy increases relative to supply, its price will increase, and then the more polluting energy will cost relatively less. Demand for the cheaper, dirtier energy forms will then increase, as will the stock values of the companies that produce them.</div>
+                <div class="stem" style="margin-top:10px;">Therese responds to Mansour's proposal by doing which of the following?</div>
+              </div>
+              <div class="choices">
+                <div class="choice"><span class="choice-label">A</span>Advocating that consumers use less expensive forms of energy</div>
+                <div class="choice"><span class="choice-label">B</span>Implying that not all uses of coal for energy are necessarily polluting</div>
+                <div class="choice"><span class="choice-label">C</span>Disagreeing with Mansour's claim that consumers are increasingly demanding nonpolluting energy</div>
+                <div class="choice"><span class="choice-label">D</span>Suggesting that leaving their existing energy investments unchanged could be the better course</div>
+                <div class="choice"><span class="choice-label">E</span>Providing a reason to doubt Mansour's assumption that supply of nonpolluting energy will increase in line with demand</div>
+              </div>
+              <div class="notes-label">Notes / Remarks</div>
+              <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+            </div>
+          </div>
+        </div><!-- /v-ch4-all -->
+        <div class="section-panel" id="v-ch4-pre"><div class="empty">No pre-class questions added yet.</div></div>
+        <div class="section-panel" id="v-ch4-in"><div class="empty">No in-class questions added yet.</div></div>
+        <div class="section-panel" id="v-ch4-post"><div class="empty">No post-class questions added yet.</div></div>
+        <!-- OG -->
+        <div class="section-panel" id="v-ch4-og">
+          <div class="s-tag og">OG</div>
+          <div class="card">
+            <div class="card-meta"><span class="q-number">Q—</span><span class="q-type">Complete the Argument</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch4-Qmisc1-og">Ask faculty</label></div>
+            <div class="question-body">
+              <div class="stem">Political theorist: Even with the best spies, area experts, and satellite surveillance, foreign policy assessments can still lack important information. In such circumstances intuitive judgment is vital. A national leader with such judgment can make good decisions about foreign policy even when current information is incomplete, since ________.</div>
+              <div class="stem" style="margin-top:10px;">Which of the following, if true, most logically completes the argument?</div>
+            </div>
+            <div class="choices">
+              <div class="choice"><span class="choice-label">A</span>the central reason for failure in foreign policy decision making is the absence of critical information</div>
+              <div class="choice"><span class="choice-label">B</span>those leaders whose foreign policy decisions have been highly ranked have also been found to have good intuitive judgment</div>
+              <div class="choice"><span class="choice-label">C</span>both intuitive judgment and good information are required for sound decision-making</div>
+              <div class="choice"><span class="choice-label">D</span>good foreign policy decisions often lead to improved methods of gathering information</div>
+              <div class="choice"><span class="choice-label">E</span>intuitive judgment can produce good decisions based on past experience, even when there are important gaps in current information</div>
+            </div>
+            <div class="notes-label">Notes / Remarks</div>
+            <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+          </div>
+          <div class="card">
+            <div class="card-meta"><span class="q-number">Q729</span><span class="q-type">Misc</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch4-Q729-og">Ask faculty</label></div>
+            <div class="question-body">
+              <div class="stem">Yeasts capable of leavening bread are widespread, and in the many centuries during which the ancient Egyptians made only unleavened bread, such yeasts must frequently have been mixed into bread doughs accidentally. The Egyptians, however, did not discover leavened bread until about 3000 B.C. That discovery roughly coincided with the introduction of a wheat variety that was preferable to previous varieties because its edible kernel could be removed from the husk without first toasting the grain.</div>
+              <div class="stem" style="margin-top:10px;">Which of the following, if true, provides the strongest evidence that the two developments were causally related?</div>
+            </div>
+            <div class="choices">
+              <div class="choice"><span class="choice-label">A</span>Even after the ancient Egyptians discovered leavened bread and the techniques for reliably producing it were well known, unleavened bread continued to be widely consumed.</div>
+              <div class="choice"><span class="choice-label">B</span>Only when the Egyptians stopped the practice of toasting grain were their stone-lined grain-toasting pits available for baking bread.</div>
+              <div class="choice"><span class="choice-label">C</span>Heating a wheat kernel destroys its gluten, a protein that must be present in order for yeast to leaven bread dough.</div>
+              <div class="choice"><span class="choice-label">D</span>The new variety of wheat, which had a more delicate flavor because it was not toasted, was reserved for the consumption of high officials when it first began to be grown.</div>
+              <div class="choice"><span class="choice-label">E</span>Because the husk of the new variety of wheat was more easily removed, flour made from it required less effort to produce.</div>
+            </div>
+            <div class="notes-label">Notes / Remarks</div>
+            <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+          </div>
+          <div class="card">
+            <div class="card-meta"><span class="q-number">Q737</span><span class="q-type">Misc</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch4-Q737-og">Ask faculty</label></div>
+            <div class="question-body">
+              <div class="stem">Mansour: We should both plan to change some of our investments from coal companies to less polluting energy companies, and here's why: Consumers are increasingly demanding nonpolluting energy, and energy companies are increasingly supplying it.</div>
+              <div class="stem" style="margin-top:10px;">Therese: I'm not sure we should do what you suggest. As demand for nonpolluting energy increases relative to supply, its price will increase, and then the more polluting energy will cost relatively less. Demand for the cheaper, dirtier energy forms will then increase, as will the stock values of the companies that produce them.</div>
+              <div class="stem" style="margin-top:10px;">Therese responds to Mansour's proposal by doing which of the following?</div>
+            </div>
+            <div class="choices">
+              <div class="choice"><span class="choice-label">A</span>Advocating that consumers use less expensive forms of energy</div>
+              <div class="choice"><span class="choice-label">B</span>Implying that not all uses of coal for energy are necessarily polluting</div>
+              <div class="choice"><span class="choice-label">C</span>Disagreeing with Mansour's claim that consumers are increasingly demanding nonpolluting energy</div>
+              <div class="choice"><span class="choice-label">D</span>Suggesting that leaving their existing energy investments unchanged could be the better course</div>
+              <div class="choice"><span class="choice-label">E</span>Providing a reason to doubt Mansour's assumption that supply of nonpolluting energy will increase in line with demand</div>
+            </div>
+            <div class="notes-label">Notes / Remarks</div>
+            <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+          </div>
+        </div><!-- /v-ch4-og -->
+      </div><!-- /chapter-body -->
+    </div><!-- /v-ch4 -->
+
+    <!-- ── V·CH05 · Boldface ── -->
+    <div class="chapter" id="v-ch5">
+      <div class="chapter-header" onclick="toggleChapter('v-ch5')">
+        <div class="chapter-header-left">
+          <span class="chapter-num">V · CH 05</span>
+          <span class="chapter-name">Boldface</span>
+          <span class="chapter-count" id="count-v-ch5"></span>
+        </div>
+        <span class="chevron">⌄</span>
+      </div>
+      <div class="chapter-body">
+        <div class="section-tabs">
+          <button class="tab-btn active-all" onclick="showTab('v-ch5','all',this)">All</button>
+          <button class="tab-btn" onclick="showTab('v-ch5','pre',this)">Pre-Class</button>
+          <button class="tab-btn" onclick="showTab('v-ch5','in',this)">In-Class</button>
+          <button class="tab-btn" onclick="showTab('v-ch5','post',this)">Post-Class</button>
+          <button class="tab-btn" onclick="showTab('v-ch5','og',this)">OG</button>
+        </div>
+        <!-- ALL -->
+        <div class="all-panel visible" id="v-ch5-all">
+          <div class="all-group">
+            <div class="all-section-label og">OG</div>
+            <div class="card">
+              <div class="card-meta"><span class="q-number">Q654</span><span class="q-type">Boldface</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch5-Q654">Ask faculty</label></div>
+              <div class="question-body">
+                <div class="stem">Because the cork stoppers in wine bottles can leak, crumble, or become moldy, winemakers must often discard a significant proportion of their inventory of bottled wine. Bottlemaster, Inc., produces a plastic stopper that cannot leak, crumble, or mold. <mark style="background:#3a3a48;color:#ffffff;font-weight:700;padding:2px 5px;border-radius:3px;">Bottlemaster's plastic stopper is available to winemakers for a price only slightly higher than that of traditional cork stoppers</mark>, and cork prices are expected to rise considerably in the near future. Therefore, <mark style="background:#3a3a48;color:#ffffff;font-weight:700;padding:2px 5px;border-radius:3px;">Bottlemaster's plastic stopper will increase its share of the market for wine-bottle stoppers</mark>.</div>
+                <div class="stem" style="margin-top:10px;">In the argument given, the two portions in <mark style="background:#3a3a48;color:#ffffff;font-weight:700;padding:1px 4px;border-radius:3px;">boldface</mark> play which of the following roles?</div>
+              </div>
+              <div class="choices">
+                <div class="choice"><span class="choice-label">A</span>The first and the second each provide evidence to support the conclusion of the argument.</div>
+                <div class="choice"><span class="choice-label">B</span>The first presents information that, in light of other information presented, provides evidence to support the conclusion of the argument; the second is that conclusion.</div>
+                <div class="choice"><span class="choice-label">C</span>The first is evidence that has been used to support a position the argument opposes; the second is the conclusion of the argument.</div>
+                <div class="choice"><span class="choice-label">D</span>The first is evidence that has been used to support a position that the argument opposes; the second provides evidence to support the conclusion of the argument.</div>
+                <div class="choice"><span class="choice-label">E</span>The first is a claim the argument challenges; the second is a conclusion on which that challenge is based.</div>
+              </div>
+              <div class="notes-label">Notes / Remarks</div>
+              <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+            </div>
+            <div class="card">
+              <div class="card-meta"><span class="q-number">Q716</span><span class="q-type">Boldface</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch5-Q716">Ask faculty</label></div>
+              <div class="question-body">
+                <div class="stem">Last year a record number of new manufacturing jobs were created. Will this year bring another record? Well, <mark style="background:#3a3a48;color:#ffffff;font-weight:700;padding:2px 5px;border-radius:3px;">any new manufacturing job is created either within an existing company or by the start-up of a new company.</mark> Within existing firms, new jobs have been created this year at well below last year's record pace. At the same time, there is considerable evidence that the number of new companies starting up will be no higher this year than it was last year, and there is no reason to think that the new companies starting up this year will create more jobs per company than did last year's start-ups. So clearly, <mark style="background:#3a3a48;color:#ffffff;font-weight:700;padding:2px 5px;border-radius:3px;">the number of new jobs created this year will fall short of last year's record.</mark></div>
+                <div class="stem" style="margin-top:10px;">In the argument given, the two portions in <mark style="background:#3a3a48;color:#ffffff;font-weight:700;padding:1px 4px;border-radius:3px;">boldface</mark> play which of the following roles?</div>
+              </div>
+              <div class="choices">
+                <div class="choice"><span class="choice-label">A</span>The first is presented as an obvious truth on which the argument is based; the second is the main conclusion of the argument.</div>
+                <div class="choice"><span class="choice-label">B</span>The first is presented as an obvious truth on which the argument is based; the second is a conclusion drawn in order to support the main conclusion of the argument.</div>
+                <div class="choice"><span class="choice-label">C</span>The first and the second each provide evidence in support of the main conclusion of the argument.</div>
+                <div class="choice"><span class="choice-label">D</span>The first is a generalization that the argument seeks to establish; the second is the main conclusion of the argument.</div>
+                <div class="choice"><span class="choice-label">E</span>The first is a generalization that the argument seeks to establish; the second is a conclusion that has been drawn in order to challenge that generalization.</div>
+              </div>
+              <div class="notes-label">Notes / Remarks</div>
+              <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+            </div>
+            <div class="card">
+              <div class="card-meta"><span class="q-number">Q742</span><span class="q-type">Boldface</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch5-Q742">Ask faculty</label></div>
+              <div class="question-body">
+                <div class="stem">Consultant: <mark style="background:#3a3a48;color:#ffffff;font-weight:700;padding:2px 5px;border-radius:3px;">Ace Repairs ends up having to redo a significant number of the complex repair jobs it undertakes, but when those repairs are redone, they are invariably done right.</mark> Since we have established that there is no systematic difference between the mechanics who are assigned to do the initial repairs and those who are assigned to redo unsatisfactory jobs, we must reject the hypothesis that mistakes made in the initial repairs are due to the mechanics' lack of competence. Rather, it is likely that <mark style="background:#3a3a48;color:#ffffff;font-weight:700;padding:2px 5px;border-radius:3px;">complex repairs require a level of focused attention that the company's mechanics apply consistently only to repair jobs that have not been done right on the first try.</mark></div>
+                <div class="stem" style="margin-top:10px;">In the consultant's reasoning, the two portions in <mark style="background:#3a3a48;color:#ffffff;font-weight:700;padding:1px 4px;border-radius:3px;">boldface</mark> play which of the following roles?</div>
+              </div>
+              <div class="choices">
+                <div class="choice"><span class="choice-label">A</span>The first is the consultant's main conclusion; the second provides evidence in support of that main conclusion.</div>
+                <div class="choice"><span class="choice-label">B</span>The first is evidence that serves as the basis for rejecting one explanation of a certain finding; the second is the consultant's own explanation of that finding.</div>
+                <div class="choice"><span class="choice-label">C</span>The first is a claim whose truth is at issue in the reasoning; the second provides evidence to show that the claim is true.</div>
+                <div class="choice"><span class="choice-label">D</span>The first presents a contrast whose explanation is at issue in the reasoning; the second is the consultant's explanation of that contrast.</div>
+                <div class="choice"><span class="choice-label">E</span>The first presents a contrast whose explanation is at issue in the reasoning; the second is evidence that has been used to challenge the consultant's explanation of that contrast.</div>
+              </div>
+              <div class="notes-label">Notes / Remarks</div>
+              <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+            </div>
+          </div>
+        </div><!-- /v-ch5-all -->
+        <div class="section-panel" id="v-ch5-pre"><div class="empty">No pre-class questions added yet.</div></div>
+        <div class="section-panel" id="v-ch5-in"><div class="empty">No in-class questions added yet.</div></div>
+        <div class="section-panel" id="v-ch5-post"><div class="empty">No post-class questions added yet.</div></div>
+        <!-- OG -->
+        <div class="section-panel" id="v-ch5-og">
+          <div class="s-tag og">OG</div>
+          <div class="card">
+            <div class="card-meta"><span class="q-number">Q654</span><span class="q-type">Boldface</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch5-Q654-og">Ask faculty</label></div>
+            <div class="question-body">
+              <div class="stem">Because the cork stoppers in wine bottles can leak, crumble, or become moldy, winemakers must often discard a significant proportion of their inventory of bottled wine. Bottlemaster, Inc., produces a plastic stopper that cannot leak, crumble, or mold. <mark style="background:#3a3a48;color:#ffffff;font-weight:700;padding:2px 5px;border-radius:3px;">Bottlemaster's plastic stopper is available to winemakers for a price only slightly higher than that of traditional cork stoppers</mark>, and cork prices are expected to rise considerably in the near future. Therefore, <mark style="background:#3a3a48;color:#ffffff;font-weight:700;padding:2px 5px;border-radius:3px;">Bottlemaster's plastic stopper will increase its share of the market for wine-bottle stoppers</mark>.</div>
+              <div class="stem" style="margin-top:10px;">In the argument given, the two portions in <mark style="background:#3a3a48;color:#ffffff;font-weight:700;padding:1px 4px;border-radius:3px;">boldface</mark> play which of the following roles?</div>
+            </div>
+            <div class="choices">
+              <div class="choice"><span class="choice-label">A</span>The first and the second each provide evidence to support the conclusion of the argument.</div>
+              <div class="choice"><span class="choice-label">B</span>The first presents information that, in light of other information presented, provides evidence to support the conclusion of the argument; the second is that conclusion.</div>
+              <div class="choice"><span class="choice-label">C</span>The first is evidence that has been used to support a position the argument opposes; the second is the conclusion of the argument.</div>
+              <div class="choice"><span class="choice-label">D</span>The first is evidence that has been used to support a position that the argument opposes; the second provides evidence to support the conclusion of the argument.</div>
+              <div class="choice"><span class="choice-label">E</span>The first is a claim the argument challenges; the second is a conclusion on which that challenge is based.</div>
+            </div>
+            <div class="notes-label">Notes / Remarks</div>
+            <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+          </div>
+          <div class="card">
+            <div class="card-meta"><span class="q-number">Q716</span><span class="q-type">Boldface</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch5-Q716-og">Ask faculty</label></div>
+            <div class="question-body">
+              <div class="stem">Last year a record number of new manufacturing jobs were created. Will this year bring another record? Well, <mark style="background:#3a3a48;color:#ffffff;font-weight:700;padding:2px 5px;border-radius:3px;">any new manufacturing job is created either within an existing company or by the start-up of a new company.</mark> Within existing firms, new jobs have been created this year at well below last year's record pace. At the same time, there is considerable evidence that the number of new companies starting up will be no higher this year than it was last year, and there is no reason to think that the new companies starting up this year will create more jobs per company than did last year's start-ups. So clearly, <mark style="background:#3a3a48;color:#ffffff;font-weight:700;padding:2px 5px;border-radius:3px;">the number of new jobs created this year will fall short of last year's record.</mark></div>
+              <div class="stem" style="margin-top:10px;">In the argument given, the two portions in <mark style="background:#3a3a48;color:#ffffff;font-weight:700;padding:1px 4px;border-radius:3px;">boldface</mark> play which of the following roles?</div>
+            </div>
+            <div class="choices">
+              <div class="choice"><span class="choice-label">A</span>The first is presented as an obvious truth on which the argument is based; the second is the main conclusion of the argument.</div>
+              <div class="choice"><span class="choice-label">B</span>The first is presented as an obvious truth on which the argument is based; the second is a conclusion drawn in order to support the main conclusion of the argument.</div>
+              <div class="choice"><span class="choice-label">C</span>The first and the second each provide evidence in support of the main conclusion of the argument.</div>
+              <div class="choice"><span class="choice-label">D</span>The first is a generalization that the argument seeks to establish; the second is the main conclusion of the argument.</div>
+              <div class="choice"><span class="choice-label">E</span>The first is a generalization that the argument seeks to establish; the second is a conclusion that has been drawn in order to challenge that generalization.</div>
+            </div>
+            <div class="notes-label">Notes / Remarks</div>
+            <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+          </div>
+          <div class="card">
+            <div class="card-meta"><span class="q-number">Q742</span><span class="q-type">Boldface</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch5-Q742-og">Ask faculty</label></div>
+            <div class="question-body">
+              <div class="stem">Consultant: <mark style="background:#3a3a48;color:#ffffff;font-weight:700;padding:2px 5px;border-radius:3px;">Ace Repairs ends up having to redo a significant number of the complex repair jobs it undertakes, but when those repairs are redone, they are invariably done right.</mark> Since we have established that there is no systematic difference between the mechanics who are assigned to do the initial repairs and those who are assigned to redo unsatisfactory jobs, we must reject the hypothesis that mistakes made in the initial repairs are due to the mechanics' lack of competence. Rather, it is likely that <mark style="background:#3a3a48;color:#ffffff;font-weight:700;padding:2px 5px;border-radius:3px;">complex repairs require a level of focused attention that the company's mechanics apply consistently only to repair jobs that have not been done right on the first try.</mark></div>
+              <div class="stem" style="margin-top:10px;">In the consultant's reasoning, the two portions in <mark style="background:#3a3a48;color:#ffffff;font-weight:700;padding:1px 4px;border-radius:3px;">boldface</mark> play which of the following roles?</div>
+            </div>
+            <div class="choices">
+              <div class="choice"><span class="choice-label">A</span>The first is the consultant's main conclusion; the second provides evidence in support of that main conclusion.</div>
+              <div class="choice"><span class="choice-label">B</span>The first is evidence that serves as the basis for rejecting one explanation of a certain finding; the second is the consultant's own explanation of that finding.</div>
+              <div class="choice"><span class="choice-label">C</span>The first is a claim whose truth is at issue in the reasoning; the second provides evidence to show that the claim is true.</div>
+              <div class="choice"><span class="choice-label">D</span>The first presents a contrast whose explanation is at issue in the reasoning; the second is the consultant's explanation of that contrast.</div>
+              <div class="choice"><span class="choice-label">E</span>The first presents a contrast whose explanation is at issue in the reasoning; the second is evidence that has been used to challenge the consultant's explanation of that contrast.</div>
+            </div>
+            <div class="notes-label">Notes / Remarks</div>
+            <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+          </div>
+        </div><!-- /v-ch5-og -->
+      </div><!-- /chapter-body -->
+    </div><!-- /v-ch5 -->
+
+    <!-- ── V·CH06 · Fill in the Blanks ── -->
+    <div class="chapter" id="v-ch6">
+      <div class="chapter-header" onclick="toggleChapter('v-ch6')">
+        <div class="chapter-header-left">
+          <span class="chapter-num">V · CH 06</span>
+          <span class="chapter-name">Fill in the Blanks</span>
+          <span class="chapter-count" id="count-v-ch6"></span>
+        </div>
+        <span class="chevron">⌄</span>
+      </div>
+      <div class="chapter-body">
+        <div class="section-tabs">
+          <button class="tab-btn active-all" onclick="showTab('v-ch6','all',this)">All</button>
+          <button class="tab-btn" onclick="showTab('v-ch6','pre',this)">Pre-Class</button>
+          <button class="tab-btn" onclick="showTab('v-ch6','in',this)">In-Class</button>
+          <button class="tab-btn" onclick="showTab('v-ch6','post',this)">Post-Class</button>
+          <button class="tab-btn" onclick="showTab('v-ch6','og',this)">OG</button>
+        </div>
+        <!-- ALL -->
+        <div class="all-panel visible" id="v-ch6-all">
+          <div class="all-group">
+            <div class="all-section-label og">OG</div>
+            <div class="card">
+              <div class="card-meta"><span class="q-number">Q677</span><span class="q-type">Fill in the Blanks</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch6-Q677">Ask faculty</label></div>
+              <div class="question-body">
+                <div class="stem">Sascha: The attempt to ban parliament's right to pass directed-spending bills—bills that contain provisions specifically funding the favorite projects of some powerful politicians—is antidemocratic. Our nation's constitution requires that money be drawn from our treasury only when so stipulated by laws passed by parliament, the branch of government most directly representative of the citizens. This requirement is based on the belief that exercising the power to spend public resources involves the ultimate exercise of state authority and that therefore ________.</div>
+                <div class="stem" style="margin-top:10px;">Which of the following most logically completes Sascha's argument?</div>
+              </div>
+              <div class="choices">
+                <div class="choice"><span class="choice-label">A</span>designating funding specifically for the favorite projects of some powerful politicians should be considered antidemocratic</div>
+                <div class="choice"><span class="choice-label">B</span>the right to exercise such a power should belong exclusively to the branch of government most directly representative of the citizens</div>
+                <div class="choice"><span class="choice-label">C</span>exercising the power to spend public resources is in most cases—but not all—protected by the constitution</div>
+                <div class="choice"><span class="choice-label">D</span>modifications to any spending bills should be considered expenditures authorized by law</div>
+                <div class="choice"><span class="choice-label">E</span>only officials who are motivated by concerns for reelection should retain that power</div>
+              </div>
+              <div class="notes-label">Notes / Remarks</div>
+              <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+            </div>
+            <div class="card">
+              <div class="card-meta"><span class="q-number">Q741</span><span class="q-type">Fill in the Blanks</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch6-Q741">Ask faculty</label></div>
+              <div class="question-body">
+                <div class="stem">Laminated glass is much harder to break than the glass typically used in the windows of cars driven in Relnia. It is more difficult for thieves to break into cars with laminated glass windows than into cars with ordinary glass windows, and laminated glass windows are less likely to break in a collision. Nevertheless, considerations of security and safety do not unambiguously support a proposal to require that in Relnia all glass installed in cars be laminated glass, since ________.</div>
+                <div class="stem" style="margin-top:10px;">Which of the following most logically completes the passage?</div>
+              </div>
+              <div class="choices">
+                <div class="choice"><span class="choice-label">A</span>most people cannot visually distinguish laminated glass from the glass typically used for car windows</div>
+                <div class="choice"><span class="choice-label">B</span>a significant proportion of cars driven in Relnia are manufactured elsewhere</div>
+                <div class="choice"><span class="choice-label">C</span>some cars in Relnia already have laminated glass in their windows</div>
+                <div class="choice"><span class="choice-label">D</span>the rates of car theft and of collisions have both fallen slightly in Relnia in recent years</div>
+                <div class="choice"><span class="choice-label">E</span>there are times when breaking a car's window is the best way to provide timely help for people trapped inside</div>
+              </div>
+              <div class="notes-label">Notes / Remarks</div>
+              <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+            </div>
+            <div class="card">
+              <div class="card-meta"><span class="q-number">Q747</span><span class="q-type">Fill in the Blanks</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch6-Q747">Ask faculty</label></div>
+              <div class="question-body">
+                <div class="stem">A new machine for harvesting corn will allow rows to be planted only 15 inches apart instead of the usual 30 inches. Corn planted this closely will produce lower yields per plant. Nevertheless, the new machine will allow corn growers to double their profits per acre because ________.</div>
+                <div class="stem" style="margin-top:10px;">Which of the following most logically completes the argument?</div>
+              </div>
+              <div class="choices">
+                <div class="choice"><span class="choice-label">A</span>with the closer spacing of the rows, the growing corn plants will quickly form a dense canopy of leaves, which by shading the ground will minimize the need for costly weed control and irrigation</div>
+                <div class="choice"><span class="choice-label">B</span>with the closer spacing of the rows, corn plants will be forced to grow taller because of increased competition for sunlight from neighboring corn plants</div>
+                <div class="choice"><span class="choice-label">C</span>with the larger number of plants growing per acre, more fertilizer will be required</div>
+                <div class="choice"><span class="choice-label">D</span>with the spacing between rows cut by half, the number of plants grown per acre will almost double</div>
+                <div class="choice"><span class="choice-label">E</span>with the closer spacing of the rows, the acreage on which corn is planted will be utilized much more intensively than it was before, requiring more frequent fallow years in which corn fields are left unplanted</div>
+              </div>
+              <div class="notes-label">Notes / Remarks</div>
+              <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+            </div>
+          </div>
+        </div><!-- /v-ch6-all -->
+        <div class="section-panel" id="v-ch6-pre"><div class="empty">No pre-class questions added yet.</div></div>
+        <div class="section-panel" id="v-ch6-in"><div class="empty">No in-class questions added yet.</div></div>
+        <div class="section-panel" id="v-ch6-post"><div class="empty">No post-class questions added yet.</div></div>
+        <!-- OG -->
+        <div class="section-panel" id="v-ch6-og">
+          <div class="s-tag og">OG</div>
+          <div class="card">
+            <div class="card-meta"><span class="q-number">Q677</span><span class="q-type">Fill in the Blanks</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch6-Q677-og">Ask faculty</label></div>
+            <div class="question-body">
+              <div class="stem">Sascha: The attempt to ban parliament's right to pass directed-spending bills—bills that contain provisions specifically funding the favorite projects of some powerful politicians—is antidemocratic. Our nation's constitution requires that money be drawn from our treasury only when so stipulated by laws passed by parliament, the branch of government most directly representative of the citizens. This requirement is based on the belief that exercising the power to spend public resources involves the ultimate exercise of state authority and that therefore ________.</div>
+              <div class="stem" style="margin-top:10px;">Which of the following most logically completes Sascha's argument?</div>
+            </div>
+            <div class="choices">
+              <div class="choice"><span class="choice-label">A</span>designating funding specifically for the favorite projects of some powerful politicians should be considered antidemocratic</div>
+              <div class="choice"><span class="choice-label">B</span>the right to exercise such a power should belong exclusively to the branch of government most directly representative of the citizens</div>
+              <div class="choice"><span class="choice-label">C</span>exercising the power to spend public resources is in most cases—but not all—protected by the constitution</div>
+              <div class="choice"><span class="choice-label">D</span>modifications to any spending bills should be considered expenditures authorized by law</div>
+              <div class="choice"><span class="choice-label">E</span>only officials who are motivated by concerns for reelection should retain that power</div>
+            </div>
+            <div class="notes-label">Notes / Remarks</div>
+            <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+          </div>
+          <div class="card">
+            <div class="card-meta"><span class="q-number">Q741</span><span class="q-type">Fill in the Blanks</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch6-Q741-og">Ask faculty</label></div>
+            <div class="question-body">
+              <div class="stem">Laminated glass is much harder to break than the glass typically used in the windows of cars driven in Relnia. It is more difficult for thieves to break into cars with laminated glass windows than into cars with ordinary glass windows, and laminated glass windows are less likely to break in a collision. Nevertheless, considerations of security and safety do not unambiguously support a proposal to require that in Relnia all glass installed in cars be laminated glass, since ________.</div>
+              <div class="stem" style="margin-top:10px;">Which of the following most logically completes the passage?</div>
+            </div>
+            <div class="choices">
+              <div class="choice"><span class="choice-label">A</span>most people cannot visually distinguish laminated glass from the glass typically used for car windows</div>
+              <div class="choice"><span class="choice-label">B</span>a significant proportion of cars driven in Relnia are manufactured elsewhere</div>
+              <div class="choice"><span class="choice-label">C</span>some cars in Relnia already have laminated glass in their windows</div>
+              <div class="choice"><span class="choice-label">D</span>the rates of car theft and of collisions have both fallen slightly in Relnia in recent years</div>
+              <div class="choice"><span class="choice-label">E</span>there are times when breaking a car's window is the best way to provide timely help for people trapped inside</div>
+            </div>
+            <div class="notes-label">Notes / Remarks</div>
+            <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+          </div>
+          <div class="card">
+            <div class="card-meta"><span class="q-number">Q747</span><span class="q-type">Fill in the Blanks</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch6-Q747-og">Ask faculty</label></div>
+            <div class="question-body">
+              <div class="stem">A new machine for harvesting corn will allow rows to be planted only 15 inches apart instead of the usual 30 inches. Corn planted this closely will produce lower yields per plant. Nevertheless, the new machine will allow corn growers to double their profits per acre because ________.</div>
+              <div class="stem" style="margin-top:10px;">Which of the following most logically completes the argument?</div>
+            </div>
+            <div class="choices">
+              <div class="choice"><span class="choice-label">A</span>with the closer spacing of the rows, the growing corn plants will quickly form a dense canopy of leaves, which by shading the ground will minimize the need for costly weed control and irrigation</div>
+              <div class="choice"><span class="choice-label">B</span>with the closer spacing of the rows, corn plants will be forced to grow taller because of increased competition for sunlight from neighboring corn plants</div>
+              <div class="choice"><span class="choice-label">C</span>with the larger number of plants growing per acre, more fertilizer will be required</div>
+              <div class="choice"><span class="choice-label">D</span>with the spacing between rows cut by half, the number of plants grown per acre will almost double</div>
+              <div class="choice"><span class="choice-label">E</span>with the closer spacing of the rows, the acreage on which corn is planted will be utilized much more intensively than it was before, requiring more frequent fallow years in which corn fields are left unplanted</div>
+            </div>
+            <div class="notes-label">Notes / Remarks</div>
+            <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+          </div>
+        </div><!-- /v-ch6-og -->
+      </div><!-- /chapter-body -->
+    </div><!-- /v-ch6 -->
+
+    <!-- ── V·CH07 · Evaluate ── -->
+    <div class="chapter" id="v-ch7">
+      <div class="chapter-header" onclick="toggleChapter('v-ch7')">
+        <div class="chapter-header-left">
+          <span class="chapter-num">V · CH 07</span>
+          <span class="chapter-name">Evaluate</span>
+          <span class="chapter-count" id="count-v-ch7"></span>
+        </div>
+        <span class="chevron">⌄</span>
+      </div>
+      <div class="chapter-body">
+        <div class="section-tabs">
+          <button class="tab-btn active-all" onclick="showTab('v-ch7','all',this)">All</button>
+          <button class="tab-btn" onclick="showTab('v-ch7','pre',this)">Pre-Class</button>
+          <button class="tab-btn" onclick="showTab('v-ch7','in',this)">In-Class</button>
+          <button class="tab-btn" onclick="showTab('v-ch7','post',this)">Post-Class</button>
+          <button class="tab-btn" onclick="showTab('v-ch7','og',this)">OG</button>
+        </div>
+        <!-- ALL -->
+        <div class="all-panel visible" id="v-ch7-all">
+          <div class="all-group">
+            <div class="all-section-label og">OG</div>
+            <div class="card">
+              <div class="card-meta"><span class="q-number">Q728</span><span class="q-type">Evaluate</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch7-Q728">Ask faculty</label></div>
+              <div class="question-body">
+                <div class="stem">The population of desert tortoises in Targland's Red Desert has declined, partly because they are captured for sale as pets and partly because people riding all-terrain vehicles have damaged their habitat. Targland plans to halt this population decline by blocking the current access routes into the desert and announcing new regulations to allow access only on foot. Targland's officials predict that these measures will be adequate, since it is difficult to collect the tortoises without a vehicle.</div>
+                <div class="stem" style="margin-top:10px;">Which of the following would it be most important to establish in order to evaluate the officials' prediction?</div>
+              </div>
+              <div class="choices">
+                <div class="choice"><span class="choice-label">A</span>Whether possessing the tortoises as pets remains legally permissible in Targland</div>
+                <div class="choice"><span class="choice-label">B</span>Whether Targland is able to enforce the regulations with respect to all-terrain vehicle entry at points other than the current access routes</div>
+                <div class="choice"><span class="choice-label">C</span>Whether the Red Desert tortoises are most active during the day or at night</div>
+                <div class="choice"><span class="choice-label">D</span>Whether people who travel on foot in the Red Desert often encounter the tortoises</div>
+                <div class="choice"><span class="choice-label">E</span>Whether the Targland authorities held public hearings before restricting entry by vehicle into the Red Desert</div>
+              </div>
+              <div class="notes-label">Notes / Remarks</div>
+              <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+            </div>
+          </div>
+        </div><!-- /v-ch7-all -->
+        <div class="section-panel" id="v-ch7-pre"><div class="empty">No pre-class questions added yet.</div></div>
+        <div class="section-panel" id="v-ch7-in"><div class="empty">No in-class questions added yet.</div></div>
+        <div class="section-panel" id="v-ch7-post"><div class="empty">No post-class questions added yet.</div></div>
+        <!-- OG -->
+        <div class="section-panel" id="v-ch7-og">
+          <div class="s-tag og">OG</div>
+          <div class="card">
+            <div class="card-meta"><span class="q-number">Q728</span><span class="q-type">Evaluate</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch7-Q728-og">Ask faculty</label></div>
+            <div class="question-body">
+              <div class="stem">The population of desert tortoises in Targland's Red Desert has declined, partly because they are captured for sale as pets and partly because people riding all-terrain vehicles have damaged their habitat. Targland plans to halt this population decline by blocking the current access routes into the desert and announcing new regulations to allow access only on foot. Targland's officials predict that these measures will be adequate, since it is difficult to collect the tortoises without a vehicle.</div>
+              <div class="stem" style="margin-top:10px;">Which of the following would it be most important to establish in order to evaluate the officials' prediction?</div>
+            </div>
+            <div class="choices">
+              <div class="choice"><span class="choice-label">A</span>Whether possessing the tortoises as pets remains legally permissible in Targland</div>
+              <div class="choice"><span class="choice-label">B</span>Whether Targland is able to enforce the regulations with respect to all-terrain vehicle entry at points other than the current access routes</div>
+              <div class="choice"><span class="choice-label">C</span>Whether the Red Desert tortoises are most active during the day or at night</div>
+              <div class="choice"><span class="choice-label">D</span>Whether people who travel on foot in the Red Desert often encounter the tortoises</div>
+              <div class="choice"><span class="choice-label">E</span>Whether the Targland authorities held public hearings before restricting entry by vehicle into the Red Desert</div>
+            </div>
+            <div class="notes-label">Notes / Remarks</div>
+            <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+          </div>
+        </div><!-- /v-ch7-og -->
+      </div><!-- /chapter-body -->
+    </div><!-- /v-ch7 -->
+
+    <!-- ── V·CH08 · Assumption ── -->
+    <div class="chapter" id="v-ch8">
+      <div class="chapter-header" onclick="toggleChapter('v-ch8')">
+        <div class="chapter-header-left">
+          <span class="chapter-num">V · CH 08</span>
+          <span class="chapter-name">Assumption</span>
+          <span class="chapter-count" id="count-v-ch8"></span>
+        </div>
+        <span class="chevron">⌄</span>
+      </div>
+      <div class="chapter-body">
+        <div class="section-tabs">
+          <button class="tab-btn active-all" onclick="showTab('v-ch8','all',this)">All</button>
+          <button class="tab-btn" onclick="showTab('v-ch8','pre',this)">Pre-Class</button>
+          <button class="tab-btn" onclick="showTab('v-ch8','in',this)">In-Class</button>
+          <button class="tab-btn" onclick="showTab('v-ch8','post',this)">Post-Class</button>
+          <button class="tab-btn" onclick="showTab('v-ch8','og',this)">OG</button>
+        </div>
+        <!-- ALL -->
+        <div class="all-panel visible" id="v-ch8-all">
+          <div class="all-group">
+            <div class="all-section-label og">OG</div>
+            <div class="card">
+              <div class="card-meta"><span class="q-number">Q734</span><span class="q-type">Assumption</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch8-Q734">Ask faculty</label></div>
+              <div class="question-body">
+                <div class="stem">In Kravonia, the average salary for jobs requiring a college degree has always been higher than the average salary for jobs that do not require a degree. Current enrollments in Kravonia's colleges indicate that over the next four years, the percentage of the Kravonian workforce with college degrees will increase dramatically. Therefore, the average salary for all workers in Kravonia is likely to increase over the next four years.</div>
+                <div class="stem" style="margin-top:10px;">Which of the following is an assumption on which the argument depends?</div>
+              </div>
+              <div class="choices">
+                <div class="choice"><span class="choice-label">A</span>Kravonians with more than one college degree earn more, on average, than do Kravonians with only one college degree.</div>
+                <div class="choice"><span class="choice-label">B</span>The percentage of Kravonians who attend college in order to earn higher salaries is higher now than it was several years ago.</div>
+                <div class="choice"><span class="choice-label">C</span>The higher average salary for jobs requiring a college degree is not due largely to a scarcity among the Kravonian workforce of people with a college degree.</div>
+                <div class="choice"><span class="choice-label">D</span>The average salary in Kravonia for jobs that do not require a college degree will not increase over the next four years.</div>
+                <div class="choice"><span class="choice-label">E</span>Few members of the Kravonian workforce earned their degrees in other countries.</div>
+              </div>
+              <div class="notes-label">Notes / Remarks</div>
+              <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+            </div>
+          </div>
+        </div><!-- /v-ch8-all -->
+        <div class="section-panel" id="v-ch8-pre"><div class="empty">No pre-class questions added yet.</div></div>
+        <div class="section-panel" id="v-ch8-in"><div class="empty">No in-class questions added yet.</div></div>
+        <div class="section-panel" id="v-ch8-post"><div class="empty">No post-class questions added yet.</div></div>
+        <!-- OG -->
+        <div class="section-panel" id="v-ch8-og">
+          <div class="s-tag og">OG</div>
+          <div class="card">
+            <div class="card-meta"><span class="q-number">Q734</span><span class="q-type">Assumption</span><label class="ask-label"><input type="checkbox" class="ask-check" data-key="ask-v-ch8-Q734-og">Ask faculty</label></div>
+            <div class="question-body">
+              <div class="stem">In Kravonia, the average salary for jobs requiring a college degree has always been higher than the average salary for jobs that do not require a degree. Current enrollments in Kravonia's colleges indicate that over the next four years, the percentage of the Kravonian workforce with college degrees will increase dramatically. Therefore, the average salary for all workers in Kravonia is likely to increase over the next four years.</div>
+              <div class="stem" style="margin-top:10px;">Which of the following is an assumption on which the argument depends?</div>
+            </div>
+            <div class="choices">
+              <div class="choice"><span class="choice-label">A</span>Kravonians with more than one college degree earn more, on average, than do Kravonians with only one college degree.</div>
+              <div class="choice"><span class="choice-label">B</span>The percentage of Kravonians who attend college in order to earn higher salaries is higher now than it was several years ago.</div>
+              <div class="choice"><span class="choice-label">C</span>The higher average salary for jobs requiring a college degree is not due largely to a scarcity among the Kravonian workforce of people with a college degree.</div>
+              <div class="choice"><span class="choice-label">D</span>The average salary in Kravonia for jobs that do not require a college degree will not increase over the next four years.</div>
+              <div class="choice"><span class="choice-label">E</span>Few members of the Kravonian workforce earned their degrees in other countries.</div>
+            </div>
+            <div class="notes-label">Notes / Remarks</div>
+            <textarea class="notes-box" placeholder="Why did you get this wrong?"></textarea>
+          </div>
+        </div><!-- /v-ch8-og -->
+      </div><!-- /chapter-body -->
+    </div><!-- /v-ch8 -->
+
+    <!-- ═══ ADD NEW VERBAL CHAPTERS ABOVE THIS LINE ═══ -->
+
+  </div><!-- /main-section-body sec-verbal -->
+</div><!-- /sec-verbal -->
+<!-- ═══════════════════════════════════════
+     VERBAL SECTION — END
+════════════════════════════════════════ -->
+
+
+<script>
+  let currentFilter = 'all';
+
+  function setFilter(f) {
+    currentFilter = f;
+    document.getElementById('filter-all').classList.toggle('active', f === 'all');
+    document.getElementById('filter-ask').classList.toggle('active', f === 'ask');
+    applyFilter();
+  }
+
+  function applyFilter() {
+    document.querySelectorAll('.card').forEach(card => {
+      if (currentFilter === 'all') {
+        card.classList.remove('hidden-by-filter');
+      } else {
+        const cb = card.querySelector('.ask-check');
+        card.classList.toggle('hidden-by-filter', !(cb && cb.checked));
+      }
+    });
+    updateAskCount();
+  }
+
+  function updateAskCount() {
+    const keys = new Set();
+    document.querySelectorAll('.ask-check:checked').forEach(cb => {
+      keys.add(cb.dataset.key.replace(/-(og|in|pre|post|portal)$/, ''));
+    });
+    const el = document.getElementById('ask-count');
+    el.textContent = keys.size > 0 ? '(' + keys.size + ')' : '';
+  }
+
+  function toggleSection(id) { document.getElementById(id).classList.toggle('open'); }
+  function toggleChapter(id) { document.getElementById(id).classList.toggle('open'); }
+
+  function showTab(chId, sec, btn) {
+    ['all','pre','in','post','og','portal'].forEach(s => {
+      const el = document.getElementById(chId + '-' + s);
+      if (el) { el.classList.remove('visible'); }
+    });
+    const target = document.getElementById(chId + '-' + sec);
+    if (target) target.classList.add('visible');
+    const map = {all:'active-all',pre:'active-pre',in:'active-in',post:'active-post',og:'active-og',portal:'active-portal'};
+    btn.closest('.section-tabs').querySelectorAll('.tab-btn').forEach(b => b.className = 'tab-btn');
+    btn.classList.add(map[sec]);
+    applyFilter();
+  }
+
+  function updateCounts() {
+    const sections = [
+      { metaId:'meta-quant',  chIds:['q-ch1','q-ch2','q-ch3','q-ch4'] },
+      { metaId:'meta-verbal', chIds:['v-ch1','v-ch2','v-ch3','v-ch4','v-ch5','v-ch6','v-ch7','v-ch8'] },
+    ];
+    let grandCh = 0, grandQ = 0;
+    sections.forEach(sec => {
+      let secQ = 0;
+      sec.chIds.forEach(chId => {
+        const allPanel = document.getElementById(chId + '-all');
+        const n = allPanel ? allPanel.querySelectorAll('.card').length : 0;
+        const el = document.getElementById('count-' + chId);
+        if (el) el.textContent = n + (n === 1 ? ' question' : ' questions');
+        secQ += n;
+      });
+      const nCh = sec.chIds.length;
+      const m = document.getElementById(sec.metaId);
+      if (m) m.textContent = nCh + ' chapter' + (nCh !== 1 ? 's' : '') + ' · ' + secQ + ' question' + (secQ !== 1 ? 's' : '');
+      grandCh += nCh; grandQ += secQ;
+    });
+    document.getElementById('total-chapters').textContent = grandCh;
+    document.getElementById('total-questions').textContent = grandQ;
+  }
+
+  function getNoteKey(ta) {
+    const card = ta.closest('.card');
+    const qNum = (card.querySelector('.q-number') || {}).textContent || 'unknown';
+    const ch = ta.closest('.chapter');
+    // Use chapter + question number only — no panel suffix — so All/OG/In tabs share the same note
+    return 'gmat-note-' + (ch ? ch.id : 'x') + '-' + qNum.trim();
+  }
+
+  function initNotes() {
+    document.querySelectorAll('.notes-box').forEach(ta => {
+      const k = getNoteKey(ta);
+      const saved = localStorage.getItem(k);
+      if (saved) ta.value = saved;
+      ta.addEventListener('input', () => localStorage.setItem(k, ta.value));
+    });
+  }
+
+  function initAskChecks() {
+    document.querySelectorAll('.ask-check').forEach(cb => {
+      const k = cb.dataset.key;
+      const label = cb.closest('.ask-label');
+      if (localStorage.getItem(k) === 'true') { cb.checked = true; label.classList.add('checked'); }
+      label.addEventListener('click', e => {
+        e.preventDefault();
+        cb.checked = !cb.checked;
+        label.classList.toggle('checked', cb.checked);
+        localStorage.setItem(k, cb.checked);
+        updateAskCount();
+        if (currentFilter === 'ask') applyFilter();
+      });
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    initNotes();
+    initAskChecks();
+    updateCounts();
+    updateAskCount();
+  });
+</script>
+</body>
+</html>
